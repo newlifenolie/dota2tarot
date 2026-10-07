@@ -971,7 +971,7 @@ async function drawPosterCard(g, card, x, y, w) {
   for (const { img, s } of order) {
     if (!img) continue;
     const size = ww * s.size;
-    g.filter = s.dim ? "url(#tarot-ink) brightness(.82) saturate(.75)" : "url(#tarot-ink)";
+    g.filter = s.dim ? "url(#tarot-ink) brightness(.85)" : "url(#tarot-ink)";
     g.drawImage(img, wx + ww * s.cx - size / 2, wy + wh * (1 - s.bottom) - size, size, size);
     g.filter = "none";
   }

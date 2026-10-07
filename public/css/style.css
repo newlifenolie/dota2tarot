@@ -460,7 +460,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 }
 .champ img { display: block; width: 100%; filter: url(#tarot-ink); }
 .champ.l, .champ.r { width: 72%; bottom: 6%; z-index: 0; }
-.champ.l img, .champ.r img { filter: url(#tarot-ink) brightness(.82) saturate(.75); }
+.champ.l img, .champ.r img { filter: url(#tarot-ink) brightness(.85); }
 .champ.l { left: 19%; animation-delay: -1.5s; }
 .champ.r { left: 81%; animation-delay: -3s; }
 .champ.flat { width: 52%; bottom: 22%; }
