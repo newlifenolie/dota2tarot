@@ -903,8 +903,8 @@ function tickCountdown() {
 }
 
 /* ---------- Share poster (1080×1920, drawn on a canvas) ---------- */
-const GOLD = "#d9b25f", GOLD_HI = "#f6dc9a", NIGHT = "#0d0a13";
-const goldA = (a) => `rgba(246,220,154,${a})`;
+const GOLD = "#b8934a", GOLD_HI = "#e2c98f", NIGHT = "#140e0a";
+const goldA = (a) => `rgba(226,201,143,${a})`;
 
 function loadImg(src) {
   return new Promise((resolve) => {
@@ -969,11 +969,11 @@ async function drawPosterCard(g, card, x, y, w) {
   g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 60; g.shadowOffsetY = 24;
   roundRect(g, x, y, w, h, 6 * u);
   const body = g.createRadialGradient(x + w / 2, y + h * 0.38, 0, x + w / 2, y + h * 0.38, h * 0.7);
-  body.addColorStop(0, "#1f1a2b"); body.addColorStop(1, "#0b090f");
+  body.addColorStop(0, "#2a1f16"); body.addColorStop(1, "#120d09");
   g.fillStyle = body; g.fill();
   g.restore();
   g.strokeStyle = GOLD; g.lineWidth = 2; g.stroke();
-  g.strokeStyle = "rgba(217,178,95,.55)"; g.lineWidth = 1.5; roundRect(g, x + 1.6 * u, y + 1.6 * u, w - 3.2 * u, h - 3.2 * u, 5 * u); g.stroke();
+  g.strokeStyle = "rgba(184,147,74,.55)"; g.lineWidth = 1.5; roundRect(g, x + 1.6 * u, y + 1.6 * u, w - 3.2 * u, h - 3.2 * u, 5 * u); g.stroke();
   for (let i = 0; i < 14; i++) {
     g.fillStyle = goldA(0.4 + rnd() * 0.5);
     g.beginPath(); g.arc(x + (5 + rnd() * 90) * u, y + (5 + rnd() * 155) * u, 1 + rnd() * 1.5, 0, Math.PI * 2); g.fill();
@@ -981,7 +981,7 @@ async function drawPosterCard(g, card, x, y, w) {
 
   // Frames and corner studs
   g.strokeStyle = GOLD; g.lineWidth = 2; roundRect(g, x + 4 * u, y + 4 * u, w - 8 * u, h - 8 * u, 2 * u); g.stroke();
-  g.setLineDash([2, 5]); g.strokeStyle = "rgba(217,178,95,.6)"; g.lineWidth = 1.5;
+  g.setLineDash([2, 5]); g.strokeStyle = "rgba(184,147,74,.6)"; g.lineWidth = 1.5;
   roundRect(g, x + 5.3 * u, y + 5.3 * u, w - 10.6 * u, h - 10.6 * u, 1.2 * u); g.stroke();
   g.setLineDash([]);
   for (const [cx, cy] of [[x + 4 * u, y + 4 * u], [x + w - 4 * u, y + 4 * u], [x + 4 * u, y + h - 4 * u], [x + w - 4 * u, y + h - 4 * u]]) {
@@ -995,7 +995,7 @@ async function drawPosterCard(g, card, x, y, w) {
   archPath(g, wx, wy, ww, wh, archH); g.clip();
   g.fillStyle = NIGHT; g.fillRect(wx, wy, ww, wh);
   const glow = g.createRadialGradient(hx, hy, 0, hx, hy, ww * 0.62);
-  glow.addColorStop(0, "rgba(217,178,95,.16)"); glow.addColorStop(1, "rgba(217,178,95,0)");
+  glow.addColorStop(0, "rgba(184,147,74,.16)"); glow.addColorStop(1, "rgba(184,147,74,0)");
   g.fillStyle = glow; g.fillRect(wx, wy, ww, wh);
   g.strokeStyle = goldA(0.22); g.lineWidth = 1;
   for (let a = 0; a < 360; a += 6) {
@@ -1004,9 +1004,9 @@ async function drawPosterCard(g, card, x, y, w) {
   }
   // Halo: dark ring, alternating gold wedges, a fine ring line and a dark centre disc
   g.beginPath(); g.arc(hx, hy, R + 1.2 * u, 0, Math.PI * 2); g.fillStyle = "rgba(13,10,19,.9)"; g.fill();
-  g.strokeStyle = "rgba(217,178,95,.45)"; g.lineWidth = 1.5; g.stroke();
-  g.beginPath(); g.arc(hx, hy, R, 0, Math.PI * 2); g.fillStyle = "rgba(217,178,95,.07)"; g.fill();
-  g.fillStyle = "rgba(217,178,95,.4)";
+  g.strokeStyle = "rgba(184,147,74,.45)"; g.lineWidth = 1.5; g.stroke();
+  g.beginPath(); g.arc(hx, hy, R, 0, Math.PI * 2); g.fillStyle = "rgba(184,147,74,.07)"; g.fill();
+  g.fillStyle = "rgba(184,147,74,.4)";
   for (let a = 0; a < 360; a += 8) {
     const r0 = (a * Math.PI) / 180, r1 = ((a + 4) * Math.PI) / 180;
     g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, R, r0, r1); g.closePath(); g.fill();
@@ -1023,7 +1023,7 @@ async function drawPosterCard(g, card, x, y, w) {
     g.lineTo(px(102), py(42)); g.lineTo(px(-2), py(42)); g.closePath();
     g.fillStyle = fill; g.fill(); g.strokeStyle = goldA(0.75); g.lineWidth = 1.5; g.stroke();
   };
-  hill([[-2, 20], [15, 6], [32, 15], [49, 24], [64, 12], [79, 0], [102, 16]], "rgba(217,178,95,.08)");
+  hill([[-2, 20], [15, 6], [32, 15], [49, 24], [64, 12], [79, 0], [102, 16]], "rgba(184,147,74,.08)");
   hill([[-2, 28], [22, 18], [48, 26], [74, 34], [102, 24]], NIGHT);
 
   // Arcana emblem: the centrepiece on its own, a faint ghost behind a hero
@@ -1074,7 +1074,7 @@ async function drawPosterCard(g, card, x, y, w) {
       g.save();
       archPath(g, cx, top, pw, ph, ah);
       const pg = g.createRadialGradient(cx + pw / 2, top + ph * 0.38, 0, cx + pw / 2, top + ph * 0.38, pw);
-      pg.addColorStop(0, "rgba(246,220,154,.18)"); pg.addColorStop(1, NIGHT);
+      pg.addColorStop(0, "rgba(226,201,143,.18)"); pg.addColorStop(1, NIGHT);
       g.fillStyle = pg; g.fill();
       g.save(); g.clip();
       if (img) {
@@ -1099,10 +1099,10 @@ async function drawPosterCard(g, card, x, y, w) {
 
   // Medallion numeral on the crown of the arch
   const mx = x + w / 2, my = y + 5 * u + 7.5 * u, mr = 7.5 * u;
-  g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.fillStyle = "#0b090f"; g.fill();
-  g.strokeStyle = "rgba(217,178,95,.6)"; g.lineWidth = 1.5; g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.fillStyle = "#120d09"; g.fill();
+  g.strokeStyle = "rgba(184,147,74,.6)"; g.lineWidth = 1.5; g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.stroke();
   const med = g.createRadialGradient(mx, my, 0, mx, my, mr);
-  med.addColorStop(0, "#2a2233"); med.addColorStop(1, "#0b090f");
+  med.addColorStop(0, "#33261a"); med.addColorStop(1, "#120d09");
   g.beginPath(); g.arc(mx, my, mr, 0, Math.PI * 2); g.fillStyle = med; g.fill();
   g.strokeStyle = GOLD_HI; g.lineWidth = 2; g.stroke();
   g.fillStyle = GOLD_HI; g.textAlign = "center"; g.textBaseline = "middle";
@@ -1119,7 +1119,7 @@ async function drawPosterCard(g, card, x, y, w) {
   g.moveTo(rx, ry); g.lineTo(rx + rw, ry); g.lineTo(rx + rw - notch, ry + rh / 2); g.lineTo(rx + rw, ry + rh);
   g.lineTo(rx, ry + rh); g.lineTo(rx + notch, ry + rh / 2); g.closePath();
   const rib = g.createLinearGradient(0, ry, 0, ry + rh);
-  rib.addColorStop(0, "#7d211b"); rib.addColorStop(1, "#4c110e");
+  rib.addColorStop(0, "#6b2a1f"); rib.addColorStop(1, "#3d1710");
   g.fillStyle = rib; g.fill();
   g.restore();
   g.strokeStyle = goldA(0.8); g.lineWidth = 1.5;
@@ -1135,6 +1135,27 @@ async function drawPosterCard(g, card, x, y, w) {
   g.font = `600 ${3.6 * u}px Inter, "Noto Serif SC", sans-serif`;
   g.fillText(card.label.toUpperCase(), x + w / 2, ry + 15.4 * u);
   g.textBaseline = "alphabetic";
+
+  // Aged print over the finished card: grain, a few age spots and a dark worn edge
+  g.save();
+  roundRect(g, x, y, w, h, 6 * u); g.clip();
+  const grain = document.createElement("canvas");
+  grain.width = grain.height = 160;
+  const gg = grain.getContext("2d"), pix = gg.createImageData(160, 160);
+  for (let i = 0; i < pix.data.length; i += 4) { const v = rnd() * 255; pix.data[i] = pix.data[i + 1] = pix.data[i + 2] = v; pix.data[i + 3] = 255; }
+  gg.putImageData(pix, 0, 0);
+  g.globalCompositeOperation = "overlay"; g.globalAlpha = 0.09;
+  g.fillStyle = g.createPattern(grain, "repeat"); g.fillRect(x, y, w, h);
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
+  for (const [sx, sy, sr] of [[0.78, 0.09, 0.07], [0.18, 0.42, 0.05], [0.62, 0.53, 0.04]]) {
+    const spot = g.createRadialGradient(x + w * sx, y + h * sy, 0, x + w * sx, y + h * sy, w * sr);
+    spot.addColorStop(0, "rgba(120,80,30,.14)"); spot.addColorStop(1, "rgba(120,80,30,0)");
+    g.fillStyle = spot; g.fillRect(x, y, w, h);
+  }
+  const edge = g.createRadialGradient(x + w / 2, y + h / 2, h * 0.35, x + w / 2, y + h / 2, h * 0.62);
+  edge.addColorStop(0, "rgba(0,0,0,0)"); edge.addColorStop(1, "rgba(0,0,0,.3)");
+  g.fillStyle = edge; g.fillRect(x, y, w, h);
+  g.restore();
 }
 
 async function makePoster(kind) {

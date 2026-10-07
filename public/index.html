@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=13" />
+  <link rel="stylesheet" href="css/style.css?v=15" />
 </head>
 <body>
   <!-- Draws hero art as gold-foil line art: gold edge lines and a gold outline over a dark silhouette. -->
@@ -21,13 +21,18 @@
       <feColorMatrix in="SourceGraphic" type="matrix" values="0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0 0 0 1 0" result="gray" />
       <feGaussianBlur in="gray" stdDeviation="0.5" result="soft" />
       <feConvolveMatrix in="soft" order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" result="edges" />
-      <feColorMatrix in="edges" type="matrix" values="0 0 0 0 0.97  0 0 0 0 0.82  0 0 0 0 0.48  5 5 5 0 -0.12" result="lines" />
-      <feComposite in="lines" in2="SourceAlpha" operator="in" result="innerLines" />
+      <feColorMatrix in="edges" type="matrix" values="0 0 0 0 0.89  0 0 0 0 0.78  0 0 0 0 0.55  5 5 5 0 -0.12" result="lines" />
+      <!-- Worn printing: random patches of the ink fade out -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="7" result="noise" />
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.2 0 0 0 1.9" result="wear" />
+      <feComposite in="lines" in2="wear" operator="in" result="wornLines" />
+      <feComposite in="wornLines" in2="SourceAlpha" operator="in" result="innerLines" />
       <feMorphology in="SourceAlpha" operator="dilate" radius="1.2" result="grown" />
       <feComposite in="grown" in2="SourceAlpha" operator="out" result="ring" />
-      <feFlood flood-color="#f6d98e" />
-      <feComposite in2="ring" operator="in" result="outline" />
-      <feFlood flood-color="#100c16" />
+      <feFlood flood-color="#dcc28a" />
+      <feComposite in2="ring" operator="in" result="ringInk" />
+      <feComposite in="ringInk" in2="wear" operator="in" result="outline" />
+      <feFlood flood-color="#17110b" />
       <feComposite in2="SourceAlpha" operator="in" result="body" />
       <feMerge><feMergeNode in="body" /><feMergeNode in="innerLines" /><feMergeNode in="outline" /></feMerge>
     </filter>
@@ -123,9 +128,9 @@
     </nav>
   </section>
 
-  <script src="js/data.js?v=13"></script>
-  <script src="js/i18n.js?v=13"></script>
-  <script src="art/manifest.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/data.js?v=15"></script>
+  <script src="js/i18n.js?v=15"></script>
+  <script src="art/manifest.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>

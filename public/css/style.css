@@ -325,6 +325,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 /* ---------- Tarot spread ---------- */
 .spread { display: flex; justify-content: center; gap: 36px; flex-wrap: wrap; padding-top: 6px; overflow-x: clip; }
 .tarot {
+  --gold: #b8934a; --gold-hi: #e2c98f; --foil-rgb: 226,201,143; --brass-rgb: 184,147,74;
   width: 230px; aspect-ratio: 2 / 3.3;
   position: relative;
   container-type: inline-size;
@@ -344,22 +345,22 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .face {
   position: absolute; inset: 0; border-radius: 6cqw; overflow: hidden;
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  box-shadow: 0 24px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(217,178,95,.55);
+  box-shadow: 0 24px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(var(--brass-rgb),.55);
 }
 
 /* Card back */
 .face.back {
   background:
-    radial-gradient(circle at 50% 50%, rgba(217,178,95,.2), transparent 60%),
-    repeating-linear-gradient(45deg, rgba(217,178,95,.05) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(-45deg, rgba(217,178,95,.05) 0 1px, transparent 1px 9px),
-    linear-gradient(160deg, #1d1530, #0c0912 50%, #2a0f0c);
+    radial-gradient(circle at 50% 50%, rgba(var(--brass-rgb),.2), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(var(--brass-rgb),.05) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(var(--brass-rgb),.05) 0 1px, transparent 1px 9px),
+    linear-gradient(160deg, #2c2016, #120d09 50%, #2a140c);
 }
 .back-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--gold); stroke-width: .6; }
 .back-art .mandala { transform-box: fill-box; transform-origin: center; animation: spin 30s linear infinite; }
 .back-art .eye { stroke-width: .9; filter: drop-shadow(0 0 3px var(--gold)); }
 .back-art .pupil { fill: var(--gold-hi); stroke: none; transform-box: fill-box; transform-origin: center; animation: pulse 2.4s ease-in-out infinite; }
-.back-art .moon { fill: rgba(217,178,95,.25); }
+.back-art .moon { fill: rgba(var(--brass-rgb),.25); }
 .back-art .star { fill: var(--gold-hi); stroke: none; animation: twinkle 3s ease-in-out infinite; }
 .back-art .star:nth-child(odd) { animation-delay: -1.5s; }
 @keyframes twinkle { 50% { opacity: .15; } }
@@ -369,22 +370,22 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   --line: #f6dc9a;
   transform: rotateY(180deg);
   background:
-    radial-gradient(1px 1px at 16% 24%, rgba(246,220,154,.9), transparent),
-    radial-gradient(1px 1px at 82% 18%, rgba(246,220,154,.8), transparent),
-    radial-gradient(1.5px 1.5px at 88% 52%, rgba(246,220,154,.7), transparent),
-    radial-gradient(1px 1px at 10% 64%, rgba(246,220,154,.8), transparent),
-    radial-gradient(1.5px 1.5px at 30% 86%, rgba(246,220,154,.6), transparent),
-    radial-gradient(1px 1px at 72% 90%, rgba(246,220,154,.8), transparent),
-    radial-gradient(120% 80% at 50% 38%, #1f1a2b, #0b090f 70%);
-  box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px var(--gold), inset 0 0 0 1.6cqw #0b090f, inset 0 0 0 calc(1.6cqw + 1px) rgba(217,178,95,.55);
+    radial-gradient(1px 1px at 16% 24%, rgba(var(--foil-rgb),.9), transparent),
+    radial-gradient(1px 1px at 82% 18%, rgba(var(--foil-rgb),.8), transparent),
+    radial-gradient(1.5px 1.5px at 88% 52%, rgba(var(--foil-rgb),.7), transparent),
+    radial-gradient(1px 1px at 10% 64%, rgba(var(--foil-rgb),.8), transparent),
+    radial-gradient(1.5px 1.5px at 30% 86%, rgba(var(--foil-rgb),.6), transparent),
+    radial-gradient(1px 1px at 72% 90%, rgba(var(--foil-rgb),.8), transparent),
+    radial-gradient(120% 80% at 50% 38%, #2a1f16, #120d09 70%);
+  box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px var(--gold), inset 0 0 0 1.6cqw #120d09, inset 0 0 0 calc(1.6cqw + 1px) rgba(var(--brass-rgb),.55);
 }
 .tarot.flipped .face.front { animation: glow 2.6s 1.3s ease-in-out infinite; }
 @keyframes glow {
-  50% { box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px var(--gold-hi), inset 0 0 0 1.6cqw #0b090f, inset 0 0 0 calc(1.6cqw + 1px) rgba(217,178,95,.55), 0 0 46px color-mix(in srgb, var(--c) 55%, rgba(246,220,154,.6)); }
+  50% { box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 0 1px var(--gold-hi), inset 0 0 0 1.6cqw #120d09, inset 0 0 0 calc(1.6cqw + 1px) rgba(var(--brass-rgb),.55), 0 0 46px color-mix(in srgb, var(--c) 55%, rgba(var(--foil-rgb),.6)); }
 }
 
 .frame { position: absolute; inset: 4cqw; z-index: 4; pointer-events: none; border: 1px solid var(--gold); border-radius: 2cqw; }
-.frame::after { content: ""; position: absolute; inset: 1.3cqw; border: 1px dotted rgba(217,178,95,.55); border-radius: 1.2cqw; }
+.frame::after { content: ""; position: absolute; inset: 1.3cqw; border: 1px dotted rgba(var(--brass-rgb),.55); border-radius: 1.2cqw; }
 .corner { position: absolute; width: 12cqw; height: 12cqw; fill: none; stroke: var(--gold-hi); stroke-width: 1.4; }
 .corner circle { fill: var(--gold-hi); stroke: none; }
 .corner.tl { top: -1px; left: -1px; }
@@ -397,22 +398,22 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   position: absolute; top: 5cqw; left: 50%; transform: translateX(-50%); z-index: 5;
   width: 15cqw; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%;
   font-family: "Cinzel", "Noto Serif SC", serif; font-weight: 700; font-size: 4cqw; line-height: 1;
-  color: var(--gold-hi); text-shadow: 0 0 1.5cqw rgba(246,220,154,.6);
-  background: radial-gradient(circle, #2a2233, #0b090f);
+  color: var(--gold-hi); text-shadow: 0 0 1.5cqw rgba(var(--foil-rgb),.6);
+  background: radial-gradient(circle, #33261a, #120d09);
   border: 1px solid var(--gold-hi);
-  box-shadow: 0 0 0 1cqw #0b090f, 0 0 0 calc(1cqw + 1px) rgba(217,178,95,.6), 0 0 3cqw rgba(246,220,154,.3);
+  box-shadow: 0 0 0 1cqw #120d09, 0 0 0 calc(1cqw + 1px) rgba(var(--brass-rgb),.6), 0 0 3cqw rgba(var(--foil-rgb),.3);
 }
 
 /* The scene: an arched window with a sunburst halo */
 .t-art { position: absolute; left: 9cqw; right: 9cqw; top: 14cqw; bottom: 34cqw; z-index: 2; }
 .t-window {
   position: absolute; inset: 0; overflow: hidden;
-  border: 1px solid rgba(217,178,95,.8); border-radius: 50% 50% 1cqw 1cqw / 24% 24% 1cqw 1cqw;
-  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--c) 18%, rgba(217,178,95,.12)), transparent 62%), #0d0a13;
+  border: 1px solid rgba(var(--brass-rgb),.8); border-radius: 50% 50% 1cqw 1cqw / 24% 24% 1cqw 1cqw;
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--c) 18%, rgba(var(--brass-rgb),.12)), transparent 62%), repeating-linear-gradient(45deg, rgba(var(--brass-rgb),.045) 0 1px, transparent 1px 4px), #140e0a;
 }
 .rays {
   position: absolute; inset: 0;
-  background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(246,220,154,.22) 0deg .5deg, transparent .5deg 6deg);
+  background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(var(--foil-rgb),.22) 0deg .5deg, transparent .5deg 6deg);
   -webkit-mask: radial-gradient(circle at 50% 42%, transparent 45%, #000 47%, transparent 80%);
   mask: radial-gradient(circle at 50% 42%, transparent 45%, #000 47%, transparent 80%);
   animation: raysPulse 5s ease-in-out infinite;
@@ -421,20 +422,20 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .sun {
   position: absolute; left: 50%; top: 42%; width: 88%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
   background:
-    radial-gradient(circle, #0d0a13 0 38%, transparent 38.5%),
-    radial-gradient(circle, transparent 0 45.5%, rgba(246,220,154,.85) 45.8% 46.3%, transparent 46.7%),
-    repeating-conic-gradient(rgba(217,178,95,.4) 0deg 4deg, rgba(217,178,95,.07) 4deg 8deg);
-  border: 1px solid rgba(246,220,154,.8);
-  box-shadow: 0 0 0 1.2cqw rgba(13,10,19,.9), 0 0 0 calc(1.2cqw + 1px) rgba(217,178,95,.45), 0 0 8cqw color-mix(in srgb, var(--c) 30%, transparent);
+    radial-gradient(circle, #140e0a 0 38%, transparent 38.5%),
+    radial-gradient(circle, transparent 0 45.5%, rgba(var(--foil-rgb),.85) 45.8% 46.3%, transparent 46.7%),
+    repeating-conic-gradient(rgba(var(--brass-rgb),.4) 0deg 4deg, rgba(var(--brass-rgb),.07) 4deg 8deg);
+  border: 1px solid rgba(var(--foil-rgb),.8);
+  box-shadow: 0 0 0 1.2cqw rgba(13,10,19,.9), 0 0 0 calc(1.2cqw + 1px) rgba(var(--brass-rgb),.45), 0 0 8cqw color-mix(in srgb, var(--c) 30%, transparent);
   animation: spin 90s linear infinite;
 }
 .hills { position: absolute; left: 0; bottom: 0; width: 100%; height: 38%; }
-.hills path { stroke: rgba(246,220,154,.75); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.hills .far { fill: rgba(217,178,95,.08); }
-.hills .near { fill: #0d0a13; }
+.hills path { stroke: rgba(var(--foil-rgb),.75); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.hills .far { fill: rgba(var(--brass-rgb),.08); }
+.hills .near { fill: #140e0a; }
 .mote {
   position: absolute; bottom: 30%; width: 1.2cqw; height: 1.2cqw; border-radius: 50%;
-  background: #fff3cf; box-shadow: 0 0 1.5cqw .4cqw rgba(246,220,154,.8);
+  background: #efe0b8; box-shadow: 0 0 1.5cqw .4cqw rgba(var(--foil-rgb),.8);
   animation: mote linear infinite;
 }
 @keyframes mote {
@@ -447,7 +448,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .emblem svg {
   display: block; width: 100%; overflow: visible;
   fill: none; stroke: var(--line); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
-  filter: drop-shadow(0 0 2cqw rgba(246,220,154,.7)) drop-shadow(0 0 4cqw color-mix(in srgb, var(--c) 60%, transparent));
+  filter: drop-shadow(0 0 2cqw rgba(var(--foil-rgb),.7)) drop-shadow(0 0 4cqw color-mix(in srgb, var(--c) 60%, transparent));
 }
 .emblem svg * { stroke-dasharray: 1; stroke-dashoffset: 1; }
 .tarot.flipped .emblem svg * { stroke-dashoffset: 0; transition: stroke-dashoffset 1.8s .55s cubic-bezier(.6,0,.2,1); }
@@ -456,7 +457,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 /* Heroes, drawn as gold line art by #tarot-ink */
 .portal {
   position: absolute; left: 14%; right: 14%; bottom: 4%; height: 10%; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(246,220,154,.35), transparent 70%);
+  background: radial-gradient(ellipse, rgba(var(--foil-rgb),.35), transparent 70%);
   animation: portal 3s ease-in-out infinite;
 }
 @keyframes portal { 50% { transform: scaleX(1.1); opacity: .7; } }
@@ -466,7 +467,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   position: absolute; bottom: -2%; left: 50%; width: 94%; translate: -50% 0; z-index: 1;
   animation: bob2 4.5s ease-in-out infinite;
 }
-.champ img { display: block; width: 100%; filter: url(#tarot-ink) drop-shadow(0 0 1.2cqw rgba(246,220,154,.5)); }
+.champ img { display: block; width: 100%; filter: url(#tarot-ink) drop-shadow(0 0 1.2cqw rgba(var(--foil-rgb),.5)); }
 .champ.flat { width: 52%; bottom: 22%; }
 .champ.flat img, .champ.flat .fallback { position: static; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 1px solid var(--gold-hi); font-size: 5cqw; }
 .tarot .champ { opacity: 0; transition: opacity .8s .6s; }
@@ -480,9 +481,9 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .art-panels { position: absolute; inset: 0; z-index: 1; display: flex; align-items: flex-end; gap: 2cqw; padding: 3cqw; }
 .art-panels .panel {
   position: relative; flex: 1; height: 100%; overflow: hidden;
-  background: radial-gradient(circle at 50% 38%, rgba(246,220,154,.18), transparent 60%), #0d0a13;
+  background: radial-gradient(circle at 50% 38%, rgba(var(--foil-rgb),.18), transparent 60%), #140e0a;
   border: 1px solid var(--gold-hi); border-radius: 50% 50% 1cqw 1cqw / 16% 16% 1cqw 1cqw;
-  box-shadow: 0 0 2cqw rgba(246,220,154,.25);
+  box-shadow: 0 0 2cqw rgba(var(--foil-rgb),.25);
 }
 .art-panels.n3 .panel:nth-child(2) { flex: 1.35; }
 .art-panels.n3 .panel:not(:nth-child(2)) { height: 84%; }
@@ -490,7 +491,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 /* Gold line-art render, positioned by fitFigure() so the hero is centred in the panel */
 .art-panels img.figure {
   position: absolute; left: 50%; bottom: 2%; width: auto; max-width: none; object-fit: fill;
-  filter: url(#tarot-ink) drop-shadow(0 0 1cqw rgba(246,220,154,.5));
+  filter: url(#tarot-ink) drop-shadow(0 0 1cqw rgba(var(--foil-rgb),.5));
   opacity: 0; transition: opacity .4s;
 }
 .art-panels img.figure.fitted { opacity: 1; }
@@ -504,21 +505,35 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .t-plate {
   position: absolute; left: 5cqw; right: 5cqw; bottom: 8.5cqw; z-index: 5;
   text-align: center; padding: 2.4cqw 7cqw;
-  background: linear-gradient(180deg, #7d211b, #4c110e);
+  background: linear-gradient(180deg, #6b2a1f, #3d1710);
   clip-path: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%, 8% 50%);
   filter: drop-shadow(0 1cqw 1.5cqw rgba(0,0,0,.6));
 }
 .t-plate::before {
   content: ""; position: absolute; inset: .9cqw 0;
-  border-top: 1px solid rgba(246,220,154,.8); border-bottom: 1px solid rgba(246,220,154,.8);
+  border-top: 1px solid rgba(var(--foil-rgb),.8); border-bottom: 1px solid rgba(var(--foil-rgb),.8);
 }
 .t-name {
   position: relative; font-family: "Cinzel", "Noto Serif SC", serif; font-weight: 900; font-size: max(9px, 5.9cqw); line-height: 1.15;
-  letter-spacing: .05em; color: var(--gold-hi); text-shadow: 0 0 1.5cqw rgba(246,220,154,.4);
+  letter-spacing: .05em; color: var(--gold-hi); text-shadow: 0 0 1.5cqw rgba(var(--foil-rgb),.4);
 }
 .t-label {
   position: relative; font-size: max(7px, 3.6cqw); font-weight: 600; text-transform: uppercase; letter-spacing: .16em; margin-top: .8cqw;
-  color: rgba(246,220,154,.75);
+  color: rgba(var(--foil-rgb),.75);
+}
+
+/* Aged print on both faces: grain, faint scratches, age spots and a dark worn edge */
+.face::after {
+  content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit;
+  background:
+    radial-gradient(circle at 78% 14%, rgba(120,80,30,.28), transparent 7%),
+    radial-gradient(circle at 18% 70%, rgba(120,80,30,.22), transparent 5%),
+    radial-gradient(circle at 62% 88%, rgba(120,80,30,.2), transparent 4%),
+    repeating-linear-gradient(97deg, transparent 0 37px, rgba(255,240,210,.05) 37px 38px),
+    repeating-linear-gradient(-71deg, transparent 0 53px, rgba(255,240,210,.04) 53px 54px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; opacity: .2;
+  box-shadow: inset 0 0 6cqw rgba(0,0,0,.65);
 }
 
 .foil {
@@ -655,6 +670,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 /* ---------- Daily: card fan ---------- */
 .fan { position: relative; height: 360px; max-width: 760px; margin: 0 auto; }
 .fan-card {
+  --gold: #b8934a; --gold-hi: #e2c98f; --foil-rgb: 226,201,143; --brass-rgb: 184,147,74;
   position: absolute; left: 50%; bottom: 10px;
   width: 150px; aspect-ratio: 2 / 3.3; margin-left: -75px;
   container-type: inline-size;
