@@ -1,6 +1,8 @@
-const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
-const RENDER_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/";
-const ITEM_CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+// Valve serves the same files from several CDNs; if one is blocked on a visitor's network, try the next.
+const STEAM_HOSTS = ["https://cdn.cloudflare.steamstatic.com", "https://cdn.akamai.steamstatic.com", "https://cdn.fastly.steamstatic.com"];
+const HERO_PATH = "/apps/dota2/images/dota_react/heroes/";
+const RENDER_PATH = "/apps/dota2/videos/dota_react/heroes/renders/";
+const ITEM_PATH = "/apps/dota2/images/dota_react/items/";
 const RUNES = "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ";
 const CORNER = '<svg viewBox="0 0 24 24"><path d="M2 22 V8 Q2 2 8 2 H22 M6 22 V10 Q6 6 10 6 H22" /><circle cx="2" cy="22" r="1.6" /><circle cx="22" cy="2" r="1.6" /></svg>';
 const CARD_BACK = `
@@ -142,13 +144,18 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------- Helpers ---------- */
-function portrait(hero) {
+// An <img> that walks through STEAM_HOSTS on error and calls onFail once every host has failed.
+function steamImg(path, alt, onFail, lazy = false) {
   const img = new Image();
-  img.src = CDN + hero.slug + ".png";
-  img.alt = heroName(hero);
-  img.loading = "lazy";
-  img.onerror = () => img.replaceWith(fallback(hero));
+  let host = 0;
+  img.alt = alt;
+  if (lazy) img.loading = "lazy";
+  img.onerror = () => (++host < STEAM_HOSTS.length ? (img.src = STEAM_HOSTS[host] + path) : onFail(img));
+  img.src = STEAM_HOSTS[0] + path;
   return img;
+}
+function portrait(hero) {
+  return steamImg(HERO_PATH + hero.slug + ".png", heroName(hero), (img) => img.replaceWith(fallback(hero)), true);
 }
 function fallback(hero) {
   const d = document.createElement("div");
@@ -412,11 +419,10 @@ function tarotCard(c, i) {
 function champion(hero, pos) {
   const wrap = document.createElement("div");
   wrap.className = `champ ${pos}`;
-  const img = new Image();
-  img.alt = heroName(hero);
-  img.src = RENDER_CDN + hero.slug + ".png";
-  img.onerror = () => { wrap.classList.add("flat"); img.replaceWith(portrait(hero)); };
-  wrap.append(img);
+  wrap.append(steamImg(RENDER_PATH + hero.slug + ".png", heroName(hero), (img) => {
+    wrap.classList.add("flat");
+    img.replaceWith(portrait(hero));
+  }));
   return wrap;
 }
 
@@ -678,7 +684,7 @@ function renderDailyResult(scroll) {
     <div class="lucky">
       <div class="lucky-tile" style="--i:0"><div class="lucky-img hero-img"></div><span>${t("luckyHero")}</span><b>${heroName(f.hero)}</b></div>
       <div class="lucky-tile" style="--i:1"><div class="lucky-img role-img">${roleSvg(f.role)}</div><span>${t("luckyRole")}</span><b>${roleT(f.role).name}</b></div>
-      <div class="lucky-tile" style="--i:2"><div class="lucky-img item-img"><img src="${ITEM_CDN}${DAILY.itemSlugs[f.item]}.png" alt="" onerror="this.remove()" /></div><span>${t("luckyItem")}</span><b>${d.items[f.item]}</b></div>
+      <div class="lucky-tile" style="--i:2"><div class="lucky-img item-img"></div><span>${t("luckyItem")}</span><b>${d.items[f.item]}</b></div>
     </div>
     <div class="cols almanac">
       <div class="box do"><h4>${t("do")}</h4><p>${d.dos[f.doI]}</p></div>
@@ -690,6 +696,7 @@ function renderDailyResult(scroll) {
       <button class="btn btn-primary" data-go="role">${t("takeTest")}</button>
     </div>`;
   res.querySelector(".hero-img").append(portrait(f.hero));
+  res.querySelector(".item-img").append(steamImg(ITEM_PATH + DAILY.itemSlugs[f.item] + ".png", "", (img) => img.remove()));
   res.hidden = false;
   tickCountdown();
   if (scroll) setTimeout(() => res.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
