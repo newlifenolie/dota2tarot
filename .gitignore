@@ -1,0 +1,5 @@
+# Local editor/preview settings
+.claude/
+
+# Build output for Cloudflare uploads
+*.zip
