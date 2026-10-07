@@ -249,9 +249,47 @@ const heroPanels = (heroes) => {
 function fillPanels(root) {
   root.querySelectorAll(".art-panels .panel:empty").forEach((p) => {
     const h = HEROES.find((x) => x.slug === p.dataset.slug);
-    p.classList.add("inked");
-    p.append(steamImg(RENDER_PATH + h.slug + ".png", heroName(h), (img) => img.replaceWith(portrait(h))));
+    // Loaded through our relay so the pixels can be read to find the figure.
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.className = "figure";
+    img.alt = heroName(h);
+    img.onload = () => fitFigure(img, figureBox(img));
+    img.onerror = () => img.replaceWith(portrait(h));
+    img.src = RELAY + RENDER_PATH + h.slug + ".png";
+    p.append(img);
   });
+}
+
+// Where the hero actually is in a render (renders aren't centred: weapons, wings and pets
+// push the figure aside). x is the alpha centre of mass, so a long sword doesn't skew it;
+// top/bottom are the figure's vertical extent. All values are fractions of the image.
+function figureBox(img) {
+  const n = 120;
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.drawImage(img, 0, 0, n, n);
+  let data;
+  try { data = g.getImageData(0, 0, n, n).data; } catch { return { cx: 0.5, top: 0, bottom: 1 }; }
+  let top = n, bottom = 0, sum = 0, sumX = 0;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const a = data[(y * n + x) * 4 + 3];
+      if (a < 40) continue;
+      sum += a; sumX += a * x;
+      if (y < top) top = y;
+      bottom = y;
+    }
+  }
+  if (!sum) return { cx: 0.5, top: 0, bottom: 1 };
+  return { cx: (sumX / sum + 0.5) / n, top: top / n, bottom: (bottom + 1) / n };
+}
+// Scales a render so the figure fills 92% of the panel height, centred, feet at the bottom.
+function fitFigure(img, b) {
+  img.style.height = `${(92 / (b.bottom - b.top)).toFixed(1)}%`;
+  img.style.transform = `translate(${(-b.cx * 100).toFixed(1)}%, ${((1 - b.bottom) * 100).toFixed(1)}%)`;
+  img.classList.add("fitted");
 }
 
 function portrait(hero) {
@@ -1040,8 +1078,14 @@ async function drawPosterCard(g, card, x, y, w) {
       g.fillStyle = pg; g.fill();
       g.save(); g.clip();
       if (img) {
-        if (card.panels[i].inked) { g.filter = "url(#tarot-ink)"; cover(g, img, cx, top, pw, ph, 0.3, 1.3); g.filter = "none"; }
-        else cover(g, img, cx, top, pw, ph);
+        if (card.panels[i].inked) {
+          // Same placement as fitFigure(): figure 92% of the panel height, centred, feet at the bottom
+          const b = figureBox(img);
+          const s = (ph * 0.92) / ((b.bottom - b.top) * img.height), dw = img.width * s, dh = img.height * s;
+          g.filter = "url(#tarot-ink)";
+          g.drawImage(img, cx + pw / 2 - b.cx * dw, top + ph * 0.98 - b.bottom * dh, dw, dh);
+          g.filter = "none";
+        } else cover(g, img, cx, top, pw, ph);
       }
       g.restore();
       g.shadowColor = goldA(0.4); g.shadowBlur = 12;
