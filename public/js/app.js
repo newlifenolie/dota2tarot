@@ -5,7 +5,8 @@ const STEAM_HOSTS = ["https://cdn.cloudflare.steamstatic.com", "https://cdn.akam
 const HERO_PATH = "/apps/dota2/images/dota_react/heroes/";
 const RENDER_PATH = "/apps/dota2/videos/dota_react/heroes/renders/";
 const ITEM_PATH = "/apps/dota2/images/dota_react/items/";
-const VERT_PATH = "/apps/dota2/images/heroes/"; // tall portraits ({slug}_vert.jpg); a few new heroes lack one
+const VERT_PATH = "/apps/dota2/images/heroes/"; // tall portraits ({slug}_vert.jpg)
+const NO_VERT = new Set(["dawnbreaker", "primal_beast", "muerta", "marci"]); // newer heroes Valve never made one for
 const HILLS = `
   <svg class="hills" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
     <path class="far" d="M-2 20 Q15 6 32 15 T64 12 T102 16 V42 H-2Z" />
@@ -233,6 +234,14 @@ function steamImg(path, alt, onFail, lazy = false) {
   img.src = STEAM_HOSTS[0] + path;
   return img;
 }
+// Original AI hero art (public/art/, listed in art/manifest.js). Heroes without it keep Valve's art.
+const hasArt = (hero) => HERO_ART.has(hero.slug);
+const artUrl = (hero, thumb = false) => `art/${thumb ? "thumb/" : ""}${hero.slug}.webp`;
+// Picks 2 and 3 flank the first pick in the triptych.
+const triptych = (heroes) => (heroes.length === 3 ? [heroes[1], heroes[0], heroes[2]] : heroes);
+const artPanels = (heroes) =>
+  `<div class="art-panels">${triptych(heroes).map((h) => `<div class="panel"><img src="${artUrl(h)}" alt="${heroName(h)}" /></div>`).join("")}</div>`;
+
 function portrait(hero) {
   return steamImg(HERO_PATH + hero.slug + ".png", heroName(hero), (img) => img.replaceWith(fallback(hero)), true);
 }
@@ -316,8 +325,19 @@ function renderHeroes() {
     b.style.setProperty("--i", i);
     b.style.setProperty("--attr", ATTR_COLOR[h.attr]);
     b.innerHTML = '<span class="h-window"></span><span class="h-frame"></span><span class="h-gem"></span><span class="name"></span><span class="h-sheen"></span>';
-    b.querySelector(".h-window").append(
-      steamImg(VERT_PATH + h.slug + "_vert.jpg", h.name, (img) => img.replaceWith(portrait(h)), true));
+    const vert = () => NO_VERT.has(h.slug)
+      ? portrait(h)
+      : steamImg(VERT_PATH + h.slug + "_vert.jpg", h.name, (img) => img.replaceWith(portrait(h)), true);
+    if (hasArt(h)) {
+      const art = new Image();
+      art.loading = "lazy";
+      art.alt = h.name;
+      art.onerror = () => art.replaceWith(vert());
+      art.src = artUrl(h, true);
+      b.querySelector(".h-window").append(art);
+    } else {
+      b.querySelector(".h-window").append(vert());
+    }
     grid.append(b);
   });
 
@@ -415,8 +435,9 @@ const ranked = (scores, tie = {}) =>
   Object.keys(scores).sort((a, b) => scores[b] - scores[a] || (tie[b] || 0) - (tie[a] || 0));
 
 /* ---------- Step 3: reading ---------- */
-function readingCards({ role, heroTrait, main }) {
+function readingCards({ role, heroes, heroTrait, main }) {
   const rt = roleT(role), arc = arcT(main);
+  const art = heroes.every(hasArt);
   return [
     {
       cap: t("capLane"), color: "#d9b25f", numeral: role.numeral,
@@ -425,7 +446,8 @@ function readingCards({ role, heroTrait, main }) {
     },
     {
       cap: t("capChamps"), color: TRAITS[heroTrait].color, numeral: ARCANA[heroTrait].numeral,
-      art: '<div class="portal"></div>', outside: '<div class="champs"></div>',
+      art: art ? artPanels(heroes) : '<div class="portal"></div>',
+      outside: art ? "" : '<div class="champs"></div>',
       name: traitName(heroTrait), label: t("theirGift"),
     },
     {
@@ -448,7 +470,7 @@ function startReading() {
   $("#reading-prompt").textContent = t("drawn");
   $("#result").hidden = true;
   $("#spread").innerHTML = cards.map(tarotCard).join("");
-  $("#spread .champs").append(...heroes.map((h, i) => champion(h, ["c", "l", "r"][i])));
+  $("#spread .champs")?.append(...heroes.map((h, i) => champion(h, ["c", "l", "r"][i])));
   prepEmblems($("#spread"));
 
   go("reading");
@@ -732,11 +754,14 @@ function initDaily() {
 }
 
 function dailyCard(f) {
+  const art = hasArt(f.hero);
   return {
     color: TRAITS[f.trait].color, numeral: ARCANA[f.trait].numeral,
     extra: "daily-card" + (f.reversed ? " reversed" : ""),
-    art: `<div class="emblem ghost"><svg viewBox="0 0 48 48" aria-hidden="true">${ARCANA[f.trait].icon}</svg></div><div class="portal"></div>`,
-    outside: '<div class="champs"></div>',
+    art: art
+      ? `<img class="art-full" src="${artUrl(f.hero)}" alt="${heroName(f.hero)}" />`
+      : `<div class="emblem ghost"><svg viewBox="0 0 48 48" aria-hidden="true">${ARCANA[f.trait].icon}</svg></div><div class="portal"></div>`,
+    outside: art ? "" : '<div class="champs"></div>',
     name: arcT(f.trait).card,
     label: `${heroName(f.hero)} · ${t(f.reversed ? "reversed" : "upright")}`,
   };
@@ -746,7 +771,7 @@ function showDailyCard(animate) {
   const f = state.daily;
   const stage = $("#daily-stage");
   stage.innerHTML = tarotCard(dailyCard(f), 0);
-  stage.querySelector(".champs").append(champion(f.hero, "c"));
+  stage.querySelector(".champs")?.append(champion(f.hero, "c"));
   prepEmblems(stage);
   const card = stage.querySelector(".tarot");
   if (animate) {
@@ -928,7 +953,7 @@ async function drawPosterCard(g, card, x, y, w) {
   if (emblem) {
     const es = ww * 0.78;
     g.save();
-    g.globalAlpha = card.heroes.length ? 0.3 : 1;
+    g.globalAlpha = card.heroes.length || card.art ? 0.3 : 1;
     g.translate(sx, wy + wh * 0.48);
     if (card.reversed) g.rotate(Math.PI);
     g.drawImage(emblem, -es / 2, -es / 2, es, es);
@@ -949,6 +974,35 @@ async function drawPosterCard(g, card, x, y, w) {
     g.filter = s.dim ? "url(#tarot-ink) brightness(.82) saturate(.75)" : "url(#tarot-ink)";
     g.drawImage(img, wx + ww * s.cx - size / 2, wy + wh * (1 - s.bottom) - size, size, size);
     g.filter = "none";
+  }
+  // Original hero art replaces the scene: one full image, or arched triptych panels
+  if (card.art) {
+    const arts = await Promise.all(card.art.map(loadImg));
+    const cover = (img, x0, y0, w0, h0) => {
+      const s = Math.max(w0 / img.width, h0 / img.height);
+      g.drawImage(img, x0 + (w0 - img.width * s) / 2, y0 + (h0 - img.height * s) * 0.4, img.width * s, img.height * s);
+    };
+    if (card.full && arts[0]) {
+      g.save();
+      if (card.reversed) { g.translate(wx + ww / 2, wy + wh / 2); g.rotate(Math.PI); g.translate(-(wx + ww / 2), -(wy + wh / 2)); }
+      cover(arts[0], wx, wy, ww, wh);
+      g.restore();
+    } else {
+      const pad = 3 * u, gap = 2 * u, n = arts.length;
+      const pw = (ww - pad * 2 - gap * (n - 1)) / n, ph = wh - pad * 2, ah = Math.min(pw / 2, ph * 0.18);
+      arts.forEach((img, i) => {
+        const px = wx + pad + i * (pw + gap), py = wy + pad;
+        g.save();
+        g.beginPath();
+        g.moveTo(px, py + ph); g.lineTo(px, py + ah);
+        g.ellipse(px + pw / 2, py + ah, pw / 2, ah, 0, Math.PI, 0);
+        g.lineTo(px + pw, py + ph); g.closePath();
+        g.fillStyle = "#0b090e"; g.fill();
+        g.save(); g.clip(); if (img) cover(img, px, py, pw, ph); g.restore();
+        g.strokeStyle = INK; g.lineWidth = 3; g.stroke();
+        g.restore();
+      });
+    }
   }
   g.restore();
   g.strokeStyle = INK; g.lineWidth = 4; roundRect(g, wx, wy, ww, wh, u); g.stroke();
@@ -1008,7 +1062,9 @@ async function makePoster(kind) {
   if (kind === "daily") {
     const f = state.daily, d = dailyT(), arc = arcT(f.trait);
     color = TRAITS[f.trait].color;
-    card = { color, numeral: ARCANA[f.trait].numeral, icon: ARCANA[f.trait].icon, reversed: f.reversed, heroes: [f.hero],
+    const art = hasArt(f.hero);
+    card = { color, numeral: ARCANA[f.trait].numeral, icon: ARCANA[f.trait].icon, reversed: f.reversed,
+      heroes: art ? [] : [f.hero], art: art ? [artUrl(f.hero)] : null, full: true,
       name: arc.card, label: `${heroName(f.hero)} · ${t(f.reversed ? "reversed" : "upright")}` };
     lines = { kicker: new Intl.DateTimeFormat(state.lang === "zh" ? "zh-CN" : "en", { dateStyle: "long" }).format(new Date()),
       title: `${arc.card} · ${t(f.reversed ? "reversed" : "upright")}`,
@@ -1019,7 +1075,9 @@ async function makePoster(kind) {
     const { role, heroes, scores, main } = state.reading, arc = arcT(main);
     color = TRAITS[main].color;
     const total = Object.values(scores).reduce((a, b) => a + b, 0);
-    card = { color, numeral: ARCANA[main].numeral, icon: ARCANA[main].icon, reversed: false, heroes,
+    const art = heroes.every(hasArt);
+    card = { color, numeral: ARCANA[main].numeral, icon: ARCANA[main].icon, reversed: false,
+      heroes: art ? [] : heroes, art: art ? triptych(heroes).map((h) => artUrl(h)) : null,
       name: arc.card, label: arc.title };
     lines = { kicker: `${roleT(role).name} · ${listJoin(heroes.map(heroName))}`, title: arc.title, body: `“${arc.quote}”`,
       traits: ranked(scores).slice(0, 3).map((k) => [traitName(k), Math.round((scores[k] / total) * 100), TRAITS[k].color]) };
@@ -1031,9 +1089,11 @@ async function makePoster(kind) {
   g.textAlign = "center";
   g.fillStyle = "#9a917f"; g.font = `500 28px Inter, "Noto Serif SC", sans-serif`;
   y = textBlock(g, lines.kicker, W / 2, y, 900, 38) + 22;
-  g.fillStyle = color; g.font = `900 64px Cinzel, "Noto Serif SC", serif`;
+  g.fillStyle = color;
+  let size = 64; // shrink long titles to one line so the text below never runs into the footer
+  do g.font = `900 ${size}px Cinzel, "Noto Serif SC", serif`; while (g.measureText(lines.title).width > 940 && (size -= 4) > 36);
   g.shadowColor = color; g.shadowBlur = 24;
-  y = textBlock(g, lines.title, W / 2, y + 30, 940, 72) + 6;
+  y = textBlock(g, lines.title, W / 2, y + 30, 940, size + 8) + 6;
   g.shadowBlur = 0;
   if (lines.stars) {
     g.font = `48px serif`;

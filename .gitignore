@@ -3,3 +3,6 @@
 
 # Build output for Cloudflare uploads
 *.zip
+
+# Full-size AI art before tools/prepare_art.py shrinks it into public/art/
+art-source/

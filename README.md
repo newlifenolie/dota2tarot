@@ -17,6 +17,18 @@ A Dota 2 personality test and daily fortune, in English and 简体中文.
 - `worker.js`: Cloudflare Worker that serves `public/` and relays Dota 2 art at `/img/...` (needed so posters can draw the images, and for networks that block Steam's CDN)
 - `wrangler.jsonc`: Cloudflare Worker config
 
+## Adding hero art
+
+The site can show original AI-generated art for each hero instead of Valve's.
+
+1. Generate images with the prompts in [`art/PROMPTS.md`](art/PROMPTS.md) (also `art/prompts.csv`).
+2. Save them in `art-source/` named by hero slug, e.g. `juggernaut.png` (this folder isn't committed).
+3. Run `python tools/prepare_art.py`. It writes cropped `.webp` files to `public/art/` and updates `public/art/manifest.js`.
+4. Commit and push.
+
+Heroes without art keep the Valve art in the inked tarot style, so art can be added a few heroes at a time.
+A reading uses the new art only when all of its chosen heroes have it.
+
 ## Deploying
 
 The Cloudflare Worker is connected to this repo, so every push to `main` redeploys the site.
