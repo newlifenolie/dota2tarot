@@ -37,6 +37,11 @@ const UI = {
     takeTest: "Take the Personality Test",
     dailyShare: "Today's Dota fortune: {card} ({pose}) · Luck {stars} · Lucky hero: {hero}",
     disclaimer: "Fan-made for fun. Not affiliated with or endorsed by Valve. Dota 2 and all hero art © Valve Corporation.",
+    savePoster: "Save Poster", posterMaking: "Painting your card…",
+    posterHint: "Long-press or right-click the image to save it, or use the buttons below.",
+    download: "Download", share: "Share", close: "Close",
+    posterReading: "My Dota Tarot reading", posterDaily: "Today's Dota fortune", posterCta: "Draw your own cards at",
+    soundOn: "Sound on", soundOff: "Sound off",
   },
   zh: {
     docTitle: "刀塔塔罗",
@@ -75,6 +80,11 @@ const UI = {
     takeTest: "进行性格测试",
     dailyShare: "今日刀塔运势：{card}（{pose}）· 运势 {stars} · 幸运英雄：{hero}",
     disclaimer: "粉丝自制，仅供娱乐。与 Valve 无关联，亦未获其认可。Dota 2 及所有英雄美术版权归 Valve Corporation 所有。",
+    savePoster: "保存海报", posterMaking: "正在绘制你的牌…",
+    posterHint: "长按或右键图片即可保存，也可以使用下方按钮。",
+    download: "下载", share: "分享", close: "关闭",
+    posterReading: "我的刀塔塔罗", posterDaily: "今日刀塔运势", posterCta: "来抽属于你的牌：",
+    soundOn: "音效：开", soundOff: "音效：关",
   },
 };
 

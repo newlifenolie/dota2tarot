@@ -2,27 +2,26 @@
 
 A Dota 2 personality test and daily fortune, in English and 简体中文.
 
-- **Personality reading:** pick your lane (Pos 1–5) and up to 3 favourite heroes, and three tarot cards reveal your archetype, with a trait chart.
+- **Personality reading:** pick your lane (Pos 1–5) and up to 3 favourite heroes, and three illustrated tarot cards reveal your archetype, with a trait chart.
 - **Daily fortune (每日占卜):** draw one card a day for your luck, lucky hero, role and item, and a do/don't (宜/忌) for today's games.
+- **Share posters:** save a 1080×1920 poster of your reading or daily card for WeChat Moments, Discord and similar.
 
-## Run locally
+## Layout
 
-It's plain HTML, CSS and JavaScript with no build step. Open `index.html`, or serve the folder:
+- `public/`: the website (plain HTML, CSS and JavaScript; no build step)
+  - `index.html`: page structure and the `#tarot-ink` SVG filter that gives hero art its printed-tarot look
+  - `css/style.css`: styles and animations
+  - `js/data.js`: heroes, roles, traits and English reading text
+  - `js/i18n.js`: interface strings and Chinese translations
+  - `js/app.js`: app logic, sound effects and poster drawing
+- `worker.js`: Cloudflare Worker that serves `public/` and relays Dota 2 art at `/img/...` (needed so posters can draw the images, and for networks that block Steam's CDN)
+- `wrangler.jsonc`: Cloudflare Worker config
 
-```bash
-python -m http.server 5173
-```
+## Deploying
 
-## Files
-
-- `index.html`: page structure
-- `css/style.css`: styles and animations
-- `js/data.js`: heroes, roles, traits and English reading text
-- `js/i18n.js`: interface strings and Chinese translations
-- `js/app.js`: app logic
-
-After changing a CSS or JS file, bump the `?v=` number on its link in `index.html` so browsers fetch the new version.
+The Cloudflare Worker is connected to this repo, so every push to `main` redeploys the site.
+After changing a CSS or JS file, bump the `?v=` number on its link in `public/index.html` so browsers fetch the new version.
 
 ## Disclaimer
 
-Fan-made for fun. Not affiliated with or endorsed by Valve. Dota 2 and all hero art © Valve Corporation. Hero and item images are loaded from Valve's public CDN.
+Fan-made for fun. Not affiliated with or endorsed by Valve. Dota 2 and all hero art © Valve Corporation. Hero and item images come from Valve's public CDN.
