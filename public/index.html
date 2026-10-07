@@ -12,23 +12,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=11" />
+  <link rel="stylesheet" href="css/style.css?v=12" />
 </head>
 <body>
-  <!-- Turns hero art into a sepia etching: two-tone ink-on-parchment tones with a dark outline. -->
+  <!-- Draws hero art as gold-foil line art: gold edge lines and a gold outline over a dark silhouette. -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <filter id="tarot-ink" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
-      <feColorMatrix in="SourceGraphic" type="saturate" values="0" />
-      <feComponentTransfer>
-        <feFuncR type="gamma" exponent="1.6" amplitude="1.15" />
-        <feFuncG type="gamma" exponent="1.6" amplitude="1.15" />
-        <feFuncB type="gamma" exponent="1.6" amplitude="1.15" />
-      </feComponentTransfer>
-      <feColorMatrix type="matrix" values="0.78 0 0 0 0.17  0.66 0 0 0 0.11  0.46 0 0 0 0.05  0 0 0 1 0" result="sepia" />
-      <feMorphology in="SourceAlpha" operator="dilate" radius="1.2" result="thick" />
-      <feFlood flood-color="#24160b" />
-      <feComposite in2="thick" operator="in" result="outline" />
-      <feMerge><feMergeNode in="outline" /><feMergeNode in="sepia" /></feMerge>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0 0 0 1 0" result="gray" />
+      <feGaussianBlur in="gray" stdDeviation="0.5" result="soft" />
+      <feConvolveMatrix in="soft" order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" result="edges" />
+      <feColorMatrix in="edges" type="matrix" values="0 0 0 0 0.97  0 0 0 0 0.82  0 0 0 0 0.48  5 5 5 0 -0.12" result="lines" />
+      <feComposite in="lines" in2="SourceAlpha" operator="in" result="innerLines" />
+      <feMorphology in="SourceAlpha" operator="dilate" radius="1.2" result="grown" />
+      <feComposite in="grown" in2="SourceAlpha" operator="out" result="ring" />
+      <feFlood flood-color="#f6d98e" />
+      <feComposite in2="ring" operator="in" result="outline" />
+      <feFlood flood-color="#100c16" />
+      <feComposite in2="SourceAlpha" operator="in" result="body" />
+      <feMerge><feMergeNode in="body" /><feMergeNode in="innerLines" /><feMergeNode in="outline" /></feMerge>
     </filter>
   </svg>
   <canvas id="embers" aria-hidden="true"></canvas>
@@ -122,9 +123,9 @@
     </nav>
   </section>
 
-  <script src="js/data.js?v=11"></script>
-  <script src="js/i18n.js?v=11"></script>
-  <script src="art/manifest.js?v=11"></script>
-  <script src="js/app.js?v=11"></script>
+  <script src="js/data.js?v=12"></script>
+  <script src="js/i18n.js?v=12"></script>
+  <script src="art/manifest.js?v=12"></script>
+  <script src="js/app.js?v=12"></script>
 </body>
 </html>

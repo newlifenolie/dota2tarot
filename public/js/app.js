@@ -239,8 +239,20 @@ const hasArt = (hero) => HERO_ART.has(hero.slug);
 const artUrl = (hero, thumb = false) => `art/${thumb ? "thumb/" : ""}${hero.slug}.webp`;
 // Picks 2 and 3 flank the first pick in the triptych.
 const triptych = (heroes) => (heroes.length === 3 ? [heroes[1], heroes[0], heroes[2]] : heroes);
-const artPanels = (heroes) =>
-  `<div class="art-panels">${triptych(heroes).map((h) => `<div class="panel"><img src="${artUrl(h)}" alt="${heroName(h)}" /></div>`).join("")}</div>`;
+// One arched panel per hero. With AI art for every hero the panels hold it; otherwise they stay
+// empty here and fillPanels() adds the gold line-art renders.
+const heroPanels = (heroes) => {
+  const art = heroes.every(hasArt);
+  return `<div class="art-panels n${heroes.length}">${triptych(heroes).map((h) =>
+    `<div class="panel" data-slug="${h.slug}">${art ? `<img src="${artUrl(h)}" alt="${heroName(h)}" />` : ""}</div>`).join("")}</div>`;
+};
+function fillPanels(root) {
+  root.querySelectorAll(".art-panels .panel:empty").forEach((p) => {
+    const h = HEROES.find((x) => x.slug === p.dataset.slug);
+    p.classList.add("inked");
+    p.append(steamImg(RENDER_PATH + h.slug + ".png", heroName(h), (img) => img.replaceWith(portrait(h))));
+  });
+}
 
 function portrait(hero) {
   return steamImg(HERO_PATH + hero.slug + ".png", heroName(hero), (img) => img.replaceWith(fallback(hero)), true);
@@ -437,7 +449,6 @@ const ranked = (scores, tie = {}) =>
 /* ---------- Step 3: reading ---------- */
 function readingCards({ role, heroes, heroTrait, main }) {
   const rt = roleT(role), arc = arcT(main);
-  const art = heroes.every(hasArt);
   return [
     {
       cap: t("capLane"), color: "#d9b25f", numeral: role.numeral,
@@ -446,8 +457,7 @@ function readingCards({ role, heroes, heroTrait, main }) {
     },
     {
       cap: t("capChamps"), color: TRAITS[heroTrait].color, numeral: ARCANA[heroTrait].numeral,
-      art: art ? artPanels(heroes) : '<div class="portal"></div>',
-      outside: art ? "" : '<div class="champs"></div>',
+      art: heroPanels(heroes),
       name: traitName(heroTrait), label: t("theirGift"),
     },
     {
@@ -470,7 +480,7 @@ function startReading() {
   $("#reading-prompt").textContent = t("drawn");
   $("#result").hidden = true;
   $("#spread").innerHTML = cards.map(tarotCard).join("");
-  $("#spread .champs")?.append(...heroes.map((h, i) => champion(h, ["c", "l", "r"][i])));
+  fillPanels($("#spread"));
   prepEmblems($("#spread"));
 
   go("reading");
@@ -855,9 +865,8 @@ function tickCountdown() {
 }
 
 /* ---------- Share poster (1080×1920, drawn on a canvas) ---------- */
-const INK = "#2b1b0e";
-const hexRgb = (hex) => hex.match(/\w\w/g).map((c) => parseInt(c, 16));
-const mix = (a, b, t) => `rgb(${hexRgb(a).map((v, i) => Math.round(v * t + hexRgb(b)[i] * (1 - t))).join(",")})`;
+const GOLD = "#d9b25f", GOLD_HI = "#f6dc9a", NIGHT = "#0d0a13";
+const goldA = (a) => `rgba(246,220,154,${a})`;
 
 function loadImg(src) {
   return new Promise((resolve) => {
@@ -871,7 +880,7 @@ function loadImg(src) {
 // Emblem line art as an image, so it can be drawn onto the canvas.
 const iconImg = (icon) =>
   loadImg("data:image/svg+xml;charset=utf-8," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 52 52" width="400" height="400" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`));
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 52 52" width="400" height="400" fill="none" stroke="${GOLD_HI}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`));
 
 // Wraps text to maxW; CJK text breaks between characters, other text between words.
 function wrap(g, text, maxW) {
@@ -897,131 +906,190 @@ function roundRect(g, x, y, w, h, r) {
   g.beginPath();
   g.roundRect(x, y, w, h, r);
 }
+// A rectangle with an elliptical arched top (matches the CSS border-radius arches).
+function archPath(g, x, y, w, h, archH) {
+  g.beginPath();
+  g.moveTo(x, y + h);
+  g.lineTo(x, y + archH);
+  g.ellipse(x + w / 2, y + archH, w / 2, archH, 0, Math.PI, 0);
+  g.lineTo(x + w, y + h);
+  g.closePath();
+}
+// Draws img to cover the box, like CSS object-fit: cover.
+function cover(g, img, x, y, w, h, posY = 0.4, zoom = 1) {
+  const s = Math.max(w / img.width, h / img.height) * zoom;
+  g.drawImage(img, x + (w - img.width * s) / 2, y + (h - img.height * s) * posY, img.width * s, img.height * s);
+}
 
+// The same black-and-gold card as the page, at width w.
 async function drawPosterCard(g, card, x, y, w) {
   const u = w / 100, h = 165 * u;
-  // Card body: parchment with a soft burnt edge
+  const rnd = rng(hash(card.name));
+
+  // Card body, foil edge and stars
   g.save();
-  g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 60; g.shadowOffsetY = 24;
+  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 60; g.shadowOffsetY = 24;
   roundRect(g, x, y, w, h, 6 * u);
-  const paper = g.createRadialGradient(x + w / 2, y + h * 0.4, 0, x + w / 2, y + h * 0.4, h * 0.75);
-  paper.addColorStop(0, "#f7eed6"); paper.addColorStop(0.6, "#ead9b2"); paper.addColorStop(1, "#cfb27c");
-  g.fillStyle = paper;
-  g.fill();
+  const body = g.createRadialGradient(x + w / 2, y + h * 0.38, 0, x + w / 2, y + h * 0.38, h * 0.7);
+  body.addColorStop(0, "#1f1a2b"); body.addColorStop(1, "#0b090f");
+  g.fillStyle = body; g.fill();
   g.restore();
-  g.lineWidth = 2; g.strokeStyle = "#3a2610"; g.stroke();
+  g.strokeStyle = GOLD; g.lineWidth = 2; g.stroke();
+  g.strokeStyle = "rgba(217,178,95,.55)"; g.lineWidth = 1.5; roundRect(g, x + 1.6 * u, y + 1.6 * u, w - 3.2 * u, h - 3.2 * u, 5 * u); g.stroke();
+  for (let i = 0; i < 14; i++) {
+    g.fillStyle = goldA(0.4 + rnd() * 0.5);
+    g.beginPath(); g.arc(x + (5 + rnd() * 90) * u, y + (5 + rnd() * 155) * u, 1 + rnd() * 1.5, 0, Math.PI * 2); g.fill();
+  }
 
   // Frames and corner studs
-  g.strokeStyle = INK;
-  g.lineWidth = 4; roundRect(g, x + 3.5 * u, y + 3.5 * u, w - 7 * u, h - 7 * u, 2.5 * u); g.stroke();
-  g.lineWidth = 1.5; roundRect(g, x + 4.9 * u, y + 4.9 * u, w - 9.8 * u, h - 9.8 * u, 1.5 * u); g.stroke();
-  for (const [cx, cy] of [[x + 3.5 * u, y + 3.5 * u], [x + w - 3.5 * u, y + 3.5 * u], [x + 3.5 * u, y + h - 3.5 * u], [x + w - 3.5 * u, y + h - 3.5 * u]]) {
-    g.beginPath(); g.arc(cx, cy, 1.6 * u, 0, Math.PI * 2); g.fillStyle = "#b8892f"; g.fill(); g.lineWidth = 2; g.stroke();
+  g.strokeStyle = GOLD; g.lineWidth = 2; roundRect(g, x + 4 * u, y + 4 * u, w - 8 * u, h - 8 * u, 2 * u); g.stroke();
+  g.setLineDash([2, 5]); g.strokeStyle = "rgba(217,178,95,.6)"; g.lineWidth = 1.5;
+  roundRect(g, x + 5.3 * u, y + 5.3 * u, w - 10.6 * u, h - 10.6 * u, 1.2 * u); g.stroke();
+  g.setLineDash([]);
+  for (const [cx, cy] of [[x + 4 * u, y + 4 * u], [x + w - 4 * u, y + 4 * u], [x + 4 * u, y + h - 4 * u], [x + w - 4 * u, y + h - 4 * u]]) {
+    g.beginPath(); g.arc(cx, cy, 1.3 * u, 0, Math.PI * 2); g.fillStyle = GOLD_HI; g.fill();
   }
 
-  // The scene window
-  const wx = x + 9 * u, wy = y + 14 * u, ww = w - 18 * u, wh = h - 48 * u;
+  // The arched scene with its sunburst halo
+  const wx = x + 9 * u, wy = y + 14 * u, ww = w - 18 * u, wh = h - 48 * u, archH = wh * 0.24;
+  const hx = wx + ww / 2, hy = wy + wh * 0.42, R = ww * 0.44;
   g.save();
-  roundRect(g, wx, wy, ww, wh, u); g.clip();
-  const sky = g.createLinearGradient(0, wy, 0, wy + wh * 0.62);
-  sky.addColorStop(0, mix(card.color, "#f2cf7a", 0.55)); sky.addColorStop(1, mix(card.color, "#f8ecd0", 0.22));
-  g.fillStyle = sky; g.fillRect(wx, wy, ww, wh);
-  const sx = wx + ww / 2, sy = wy + wh * 0.22, sr = ww * 0.13;
-  g.strokeStyle = "rgba(43,27,14,.22)"; g.lineWidth = 2;
-  for (let a = 0; a < 360; a += 9) {
+  archPath(g, wx, wy, ww, wh, archH); g.clip();
+  g.fillStyle = NIGHT; g.fillRect(wx, wy, ww, wh);
+  const glow = g.createRadialGradient(hx, hy, 0, hx, hy, ww * 0.62);
+  glow.addColorStop(0, "rgba(217,178,95,.16)"); glow.addColorStop(1, "rgba(217,178,95,0)");
+  g.fillStyle = glow; g.fillRect(wx, wy, ww, wh);
+  g.strokeStyle = goldA(0.22); g.lineWidth = 1;
+  for (let a = 0; a < 360; a += 6) {
     const r = (a * Math.PI) / 180;
-    g.beginPath(); g.moveTo(sx + Math.cos(r) * sr * 1.3, sy + Math.sin(r) * sr * 1.3); g.lineTo(sx + Math.cos(r) * ww, sy + Math.sin(r) * ww); g.stroke();
+    g.beginPath(); g.moveTo(hx + Math.cos(r) * R * 1.05, hy + Math.sin(r) * R * 1.05); g.lineTo(hx + Math.cos(r) * ww, hy + Math.sin(r) * ww); g.stroke();
   }
-  const sun = g.createRadialGradient(sx - sr * 0.2, sy - sr * 0.3, 0, sx, sy, sr);
-  sun.addColorStop(0, "#fff4c4"); sun.addColorStop(0.6, "#f6c445"); sun.addColorStop(1, "#e09a2a");
-  g.shadowColor = "rgba(255,214,110,.9)"; g.shadowBlur = 50;
-  g.beginPath(); g.arc(sx, sy, sr, 0, Math.PI * 2); g.fillStyle = sun; g.fill();
-  g.shadowBlur = 0; g.strokeStyle = INK; g.lineWidth = 3; g.stroke();
+  // Halo: dark ring, alternating gold wedges, a fine ring line and a dark centre disc
+  g.beginPath(); g.arc(hx, hy, R + 1.2 * u, 0, Math.PI * 2); g.fillStyle = "rgba(13,10,19,.9)"; g.fill();
+  g.strokeStyle = "rgba(217,178,95,.45)"; g.lineWidth = 1.5; g.stroke();
+  g.beginPath(); g.arc(hx, hy, R, 0, Math.PI * 2); g.fillStyle = "rgba(217,178,95,.07)"; g.fill();
+  g.fillStyle = "rgba(217,178,95,.4)";
+  for (let a = 0; a < 360; a += 8) {
+    const r0 = (a * Math.PI) / 180, r1 = ((a + 4) * Math.PI) / 180;
+    g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, R, r0, r1); g.closePath(); g.fill();
+  }
+  g.strokeStyle = goldA(0.8); g.lineWidth = 1.5;
+  g.beginPath(); g.arc(hx, hy, R, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(hx, hy, R * 0.92, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(hx, hy, R * 0.76, 0, Math.PI * 2); g.fillStyle = NIGHT; g.fill();
   // Hills (same shapes as the HILLS svg: viewBox 100×40 over the bottom 38%)
-  const hx = (v) => wx + (v / 100) * ww, hy = (v) => wy + wh * 0.62 + (v / 40) * wh * 0.38;
+  const px = (v) => wx + (v / 100) * ww, py = (v) => wy + wh * 0.62 + (v / 40) * wh * 0.38;
   const hill = (pts, fill) => {
-    g.beginPath(); g.moveTo(hx(pts[0][0]), hy(pts[0][1]));
-    for (let i = 1; i < pts.length; i += 2) g.quadraticCurveTo(hx(pts[i][0]), hy(pts[i][1]), hx(pts[i + 1][0]), hy(pts[i + 1][1]));
-    g.lineTo(hx(102), hy(42)); g.lineTo(hx(-2), hy(42)); g.closePath();
-    g.fillStyle = fill; g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.moveTo(px(pts[0][0]), py(pts[0][1]));
+    for (let i = 1; i < pts.length; i += 2) g.quadraticCurveTo(px(pts[i][0]), py(pts[i][1]), px(pts[i + 1][0]), py(pts[i + 1][1]));
+    g.lineTo(px(102), py(42)); g.lineTo(px(-2), py(42)); g.closePath();
+    g.fillStyle = fill; g.fill(); g.strokeStyle = goldA(0.75); g.lineWidth = 1.5; g.stroke();
   };
-  hill([[-2, 20], [15, 6], [32, 15], [49, 24], [64, 12], [79, 0], [102, 16]], mix(card.color, "#9fb183", 0.3));
-  hill([[-2, 28], [22, 18], [48, 26], [74, 34], [102, 24]], mix(card.color, "#c8a96a", 0.15));
+  hill([[-2, 20], [15, 6], [32, 15], [49, 24], [64, 12], [79, 0], [102, 16]], "rgba(217,178,95,.08)");
+  hill([[-2, 28], [22, 18], [48, 26], [74, 34], [102, 24]], NIGHT);
 
-  // Ghost emblem behind the heroes (upside down when reversed)
+  // Arcana emblem: the centrepiece on its own, a faint ghost behind a hero
   const emblem = await iconImg(card.icon);
-  if (emblem) {
-    const es = ww * 0.78;
+  if (emblem && !card.full && !card.panels) {
+    const es = ww * (card.heroes.length ? 0.6 : 0.46);
     g.save();
-    g.globalAlpha = card.heroes.length || card.art ? 0.3 : 1;
-    g.translate(sx, wy + wh * 0.48);
+    g.globalAlpha = card.heroes.length ? 0.35 : 1;
+    g.shadowColor = goldA(0.7); g.shadowBlur = 24;
+    g.translate(hx, hy);
     if (card.reversed) g.rotate(Math.PI);
     g.drawImage(emblem, -es / 2, -es / 2, es, es);
     g.restore();
   }
 
-  // Heroes, inked with the same SVG filter as the page (browsers without canvas filters draw them plain)
-  const imgs = await Promise.all(card.heroes.map((h) => loadImg(RELAY + RENDER_PATH + h.slug + ".png")));
-  if (imgs.some(Boolean)) {
-    g.fillStyle = "rgba(43,27,14,.4)";
-    g.beginPath(); g.ellipse(sx, wy + wh * 0.93, ww * 0.36, wh * 0.045, 0, 0, Math.PI * 2); g.fill();
-  }
-  const slots = [{ cx: 0.5, size: 0.94, bottom: -0.02, dim: false }, { cx: 0.19, size: 0.72, bottom: 0.06, dim: true }, { cx: 0.81, size: 0.72, bottom: 0.06, dim: true }];
-  const order = imgs.map((img, i) => ({ img, s: slots[i] })).reverse(); // side heroes first, centre on top
-  for (const { img, s } of order) {
-    if (!img) continue;
-    const size = ww * s.size;
-    g.filter = s.dim ? "url(#tarot-ink) brightness(.85)" : "url(#tarot-ink)";
-    g.drawImage(img, wx + ww * s.cx - size / 2, wy + wh * (1 - s.bottom) - size, size, size);
-    g.filter = "none";
-  }
-  // Original hero art replaces the scene: one full image, or arched triptych panels
-  if (card.art) {
-    const arts = await Promise.all(card.art.map(loadImg));
-    const cover = (img, x0, y0, w0, h0) => {
-      const s = Math.max(w0 / img.width, h0 / img.height);
-      g.drawImage(img, x0 + (w0 - img.width * s) / 2, y0 + (h0 - img.height * s) * 0.4, img.width * s, img.height * s);
-    };
-    if (card.full && arts[0]) {
+  // A single hero in gold line art (daily card without original art)
+  if (card.heroes.length) {
+    const img = await loadImg(RELAY + RENDER_PATH + card.heroes[0].slug + ".png");
+    if (img) {
+      const size = ww * 0.94;
       g.save();
-      if (card.reversed) { g.translate(wx + ww / 2, wy + wh / 2); g.rotate(Math.PI); g.translate(-(wx + ww / 2), -(wy + wh / 2)); }
-      cover(arts[0], wx, wy, ww, wh);
+      g.filter = "url(#tarot-ink)"; g.shadowColor = goldA(0.5); g.shadowBlur = 16;
+      g.drawImage(img, hx - size / 2, wy + wh * 1.02 - size, size, size);
       g.restore();
-    } else {
-      const pad = 3 * u, gap = 2 * u, n = arts.length;
-      const pw = (ww - pad * 2 - gap * (n - 1)) / n, ph = wh - pad * 2, ah = Math.min(pw / 2, ph * 0.18);
-      arts.forEach((img, i) => {
-        const px = wx + pad + i * (pw + gap), py = wy + pad;
-        g.save();
-        g.beginPath();
-        g.moveTo(px, py + ph); g.lineTo(px, py + ah);
-        g.ellipse(px + pw / 2, py + ah, pw / 2, ah, 0, Math.PI, 0);
-        g.lineTo(px + pw, py + ph); g.closePath();
-        g.fillStyle = "#0b090e"; g.fill();
-        g.save(); g.clip(); if (img) cover(img, px, py, pw, ph); g.restore();
-        g.strokeStyle = INK; g.lineWidth = 3; g.stroke();
-        g.restore();
-      });
     }
   }
+  // Original art filling the scene (daily card), upside down when reversed
+  if (card.full) {
+    const img = await loadImg(card.full);
+    if (img) {
+      g.save();
+      if (card.reversed) { g.translate(hx, wy + wh / 2); g.rotate(Math.PI); g.translate(-hx, -(wy + wh / 2)); }
+      cover(g, img, wx, wy, ww, wh);
+      g.restore();
+    }
+  }
+  // Altarpiece panels (Champions card): art, or gold line-art renders
+  if (card.panels) {
+    const imgs = await Promise.all(card.panels.map((p) => loadImg(p.src)));
+    const n = imgs.length, pad = 3 * u, gap = 2 * u;
+    const weights = n === 3 ? [1, 1.35, 1] : Array(n).fill(1);
+    const unit = (ww - pad * 2 - gap * (n - 1)) / weights.reduce((a, b) => a + b, 0);
+    let cx = wx + pad;
+    imgs.forEach((img, i) => {
+      const pw = unit * weights[i], full = wh - pad * 2;
+      const ph = n === 3 && i !== 1 ? full * 0.84 : full;
+      const top = wy + pad + full - ph, ah = ph * 0.16;
+      g.save();
+      archPath(g, cx, top, pw, ph, ah);
+      const pg = g.createRadialGradient(cx + pw / 2, top + ph * 0.38, 0, cx + pw / 2, top + ph * 0.38, pw);
+      pg.addColorStop(0, "rgba(246,220,154,.18)"); pg.addColorStop(1, NIGHT);
+      g.fillStyle = pg; g.fill();
+      g.save(); g.clip();
+      if (img) {
+        if (card.panels[i].inked) { g.filter = "url(#tarot-ink)"; cover(g, img, cx, top, pw, ph, 0.3, 1.3); g.filter = "none"; }
+        else cover(g, img, cx, top, pw, ph);
+      }
+      g.restore();
+      g.shadowColor = goldA(0.4); g.shadowBlur = 12;
+      g.strokeStyle = GOLD_HI; g.lineWidth = 2; g.stroke();
+      g.restore();
+      cx += pw + gap;
+    });
+  }
   g.restore();
-  g.strokeStyle = INK; g.lineWidth = 4; roundRect(g, wx, wy, ww, wh, u); g.stroke();
+  g.strokeStyle = goldA(0.8); g.lineWidth = 2; archPath(g, wx, wy, ww, wh, archH); g.stroke();
 
-  // Numeral box and name banner
-  g.font = `700 ${5.6 * u}px Cinzel, "Noto Serif SC", serif`;
-  const nw = Math.max(22 * u, g.measureText(card.numeral).width + 7 * u), nh = 8 * u;
-  g.fillStyle = "#f8f0dc"; g.fillRect(x + w / 2 - nw / 2, y + 5.5 * u, nw, nh);
-  g.lineWidth = 3; g.strokeRect(x + w / 2 - nw / 2, y + 5.5 * u, nw, nh);
-  g.fillStyle = INK; g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillText(card.numeral, x + w / 2, y + 5.5 * u + nh / 2 + 0.3 * u);
-  const py = y + h - 8 * u - 22 * u;
-  g.fillStyle = "#f8f0dc"; g.fillRect(x + 11 * u, py, w - 22 * u, 22 * u);
-  g.strokeRect(x + 11 * u, py, w - 22 * u, 22 * u);
-  g.fillStyle = INK; g.font = `900 ${7 * u}px Cinzel, "Noto Serif SC", serif`;
-  g.fillText(card.name, x + w / 2, py + 8.5 * u);
-  g.fillStyle = card.reversed ? "#9a2b1b" : mix(card.color, INK, 0.55);
-  g.font = `600 ${3.8 * u}px Inter, "Noto Serif SC", sans-serif`;
-  g.fillText(card.label.toUpperCase(), x + w / 2, py + 16 * u);
+  // Medallion numeral on the crown of the arch
+  const mx = x + w / 2, my = y + 5 * u + 7.5 * u, mr = 7.5 * u;
+  g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.fillStyle = "#0b090f"; g.fill();
+  g.strokeStyle = "rgba(217,178,95,.6)"; g.lineWidth = 1.5; g.beginPath(); g.arc(mx, my, mr + 1 * u, 0, Math.PI * 2); g.stroke();
+  const med = g.createRadialGradient(mx, my, 0, mx, my, mr);
+  med.addColorStop(0, "#2a2233"); med.addColorStop(1, "#0b090f");
+  g.beginPath(); g.arc(mx, my, mr, 0, Math.PI * 2); g.fillStyle = med; g.fill();
+  g.strokeStyle = GOLD_HI; g.lineWidth = 2; g.stroke();
+  g.fillStyle = GOLD_HI; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `700 ${4 * u}px Cinzel, "Noto Serif SC", serif`;
+  g.shadowColor = goldA(0.6); g.shadowBlur = 10;
+  g.fillText(card.numeral, mx, my + 0.3 * u);
+  g.shadowBlur = 0;
+
+  // Crimson ribbon banner with gold edges
+  const rx = x + 5 * u, rw = w - 10 * u, rh = 21 * u, ry = y + h - 8.5 * u - rh, notch = rw * 0.08;
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 16; g.shadowOffsetY = 6;
+  g.beginPath();
+  g.moveTo(rx, ry); g.lineTo(rx + rw, ry); g.lineTo(rx + rw - notch, ry + rh / 2); g.lineTo(rx + rw, ry + rh);
+  g.lineTo(rx, ry + rh); g.lineTo(rx + notch, ry + rh / 2); g.closePath();
+  const rib = g.createLinearGradient(0, ry, 0, ry + rh);
+  rib.addColorStop(0, "#7d211b"); rib.addColorStop(1, "#4c110e");
+  g.fillStyle = rib; g.fill();
+  g.restore();
+  g.strokeStyle = goldA(0.8); g.lineWidth = 1.5;
+  for (const ly of [ry + 0.9 * u, ry + rh - 0.9 * u]) {
+    const inset = notch * (0.9 * u) / (rh / 2);
+    g.beginPath(); g.moveTo(rx + inset, ly); g.lineTo(rx + rw - inset, ly); g.stroke();
+  }
+  g.fillStyle = GOLD_HI; g.font = `900 ${5.9 * u}px Cinzel, "Noto Serif SC", serif`;
+  g.shadowColor = goldA(0.4); g.shadowBlur = 10;
+  g.fillText(card.name, x + w / 2, ry + 8.6 * u);
+  g.shadowBlur = 0;
+  g.fillStyle = card.reversed ? "#ff9b84" : goldA(0.75);
+  g.font = `600 ${3.6 * u}px Inter, "Noto Serif SC", sans-serif`;
+  g.fillText(card.label.toUpperCase(), x + w / 2, ry + 15.4 * u);
   g.textBaseline = "alphabetic";
 }
 
@@ -1064,7 +1132,7 @@ async function makePoster(kind) {
     color = TRAITS[f.trait].color;
     const art = hasArt(f.hero);
     card = { color, numeral: ARCANA[f.trait].numeral, icon: ARCANA[f.trait].icon, reversed: f.reversed,
-      heroes: art ? [] : [f.hero], art: art ? [artUrl(f.hero)] : null, full: true,
+      heroes: art ? [] : [f.hero], full: art ? artUrl(f.hero) : null,
       name: arc.card, label: `${heroName(f.hero)} · ${t(f.reversed ? "reversed" : "upright")}` };
     lines = { kicker: new Intl.DateTimeFormat(state.lang === "zh" ? "zh-CN" : "en", { dateStyle: "long" }).format(new Date()),
       title: `${arc.card} · ${t(f.reversed ? "reversed" : "upright")}`,
@@ -1076,8 +1144,8 @@ async function makePoster(kind) {
     color = TRAITS[main].color;
     const total = Object.values(scores).reduce((a, b) => a + b, 0);
     const art = heroes.every(hasArt);
-    card = { color, numeral: ARCANA[main].numeral, icon: ARCANA[main].icon, reversed: false,
-      heroes: art ? [] : heroes, art: art ? triptych(heroes).map((h) => artUrl(h)) : null,
+    card = { color, numeral: ARCANA[main].numeral, icon: ARCANA[main].icon, reversed: false, heroes: [],
+      panels: triptych(heroes).map((h) => (art ? { src: artUrl(h) } : { src: RELAY + RENDER_PATH + h.slug + ".png", inked: true })),
       name: arc.card, label: arc.title };
     lines = { kicker: `${roleT(role).name} · ${listJoin(heroes.map(heroName))}`, title: arc.title, body: `“${arc.quote}”`,
       traits: ranked(scores).slice(0, 3).map((k) => [traitName(k), Math.round((scores[k] / total) * 100), TRAITS[k].color]) };
