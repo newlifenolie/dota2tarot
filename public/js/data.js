@@ -44,7 +44,76 @@ const ROLES = [
     line: "You find quiet joy in other people's wins. You see the whole map, and the dangers coming, before anyone else does.",
     icon: '<rect x="5" y="5" width="38" height="38" rx="5" opacity=".45" /><path d="M11 37 V11 H37 M11 37 H37 V11 M11 37 L37 11" opacity=".22" /><circle cx="11" cy="37" r="3" /><circle cx="37" cy="11" r="3" /><path d="M15 37 H37 V15" style="stroke-width:2.6" /><path d="M29 25 L33 29 L29 33 L25 29 Z" style="stroke-width:2" />',
   },
+  {
+    // A joke lane: picking it always gives the JUNGLE special result.
+    id: 6, name: "Jungle", pos: "Position 6", numeral: "VI", joke: true,
+    blurb: "Farms the forest. Has never seen a teamfight.",
+    weights: { GRE: 3, CHA: 1 },
+    line: "",
+    icon: '<rect x="5" y="5" width="38" height="38" rx="5" opacity=".45" /><path d="M11 37 V11 H37 M11 37 H37 V11 M11 37 L37 11" opacity=".22" /><circle cx="11" cy="37" r="3" /><circle cx="37" cy="11" r="3" /><path d="M23 34 L26.5 27 L30 34 Z M28 25 L31.5 18 L35 25 Z M14 23 L17.5 16 L21 23 Z" style="stroke-width:2.4" />',
+  },
 ];
+
+// Item-build styles (step III). Weights add to the trait tally; item is a Valve item icon slug.
+const BUILDS = [
+  { id: "glass", item: "greater_crit", weights: { AGG: 2, GRE: 1 }, name: "Glass Cannon",
+    blurb: "All damage, zero defence. Dies to one stun.",
+    line: "You build like you live: all in, no safety net. Spectacular when it works, a grey screen when it doesn't." },
+  { id: "bkb", item: "black_king_bar", weights: { STR: 2, GRE: 1 }, name: "BKB First, Always",
+    blurb: "Nothing touches me for nine seconds.",
+    line: "You respect the enemy's stuns, and your own survival. Boring? Maybe. Still alive? Definitely." },
+  { id: "nobkb", item: "black_king_bar", weights: { CHA: 2, AGG: 1 }, name: "No BKB Ever",
+    blurb: "Disables are a skill issue.",
+    line: "You refuse BKB on principle. Every chain stun is a personal insult you will avenge… after respawning." },
+  { id: "utility", item: "guardian_greaves", weights: { PRO: 2, STR: 1 }, name: "Team Utility",
+    blurb: "Pipe, Greaves, Force Staff.",
+    line: "You buy items that make your whole team better. Nobody thanks you. You buy them anyway." },
+  { id: "farm", item: "bfury", weights: { GRE: 2, STR: 1 }, name: "Farm Accelerator",
+    blurb: "Battle Fury at 14 minutes or bust.",
+    line: "Your first item helps you farm your second item, which helps you farm your third. The fight can wait." },
+  { id: "yolo", item: "rapier", weights: { CHA: 2, GRE: 1 }, name: "YOLO Rapier",
+    blurb: "Divine Rapier at 20 minutes.",
+    line: "You believe in miracles, and in buying them for 5,600 gold. The enemy believes in picking it up." },
+  { id: "wards", item: "ward_observer", weights: { PRO: 2, CUN: 1 }, name: "Wards & Smokes",
+    blurb: "Your inventory is mostly consumables.",
+    line: "Your gold becomes vision and smokes. The map is lit because you made it so." },
+  { id: "adapt", item: "sphere", weights: { CUN: 2, STR: 1 }, name: "Situational, Every Game",
+    blurb: "Reads the enemy draft, builds to counter it.",
+    line: "You never build the same thing twice. You read the enemy's inventory more closely than your own chat." },
+];
+
+// Heroes a "support" has no business picking. Support lanes plus mostly these = FAKE_SUPPORT.
+const CORE_ONLY = new Set([
+  "antimage", "sniper", "pudge", "phantom_assassin", "spectre", "medusa", "faceless_void", "juggernaut",
+  "terrorblade", "morphling", "naga_siren", "luna", "drow_ranger", "troll_warlord", "slark", "ursa",
+  "life_stealer", "skeleton_king", "sven", "alchemist", "nevermore", "templar_assassin", "ember_spirit",
+  "storm_spirit", "arc_warden", "meepo", "lycan", "gyrocopter", "chaos_knight", "weaver", "huskar",
+  "obsidian_destroyer", "tinker", "broodmother", "lone_druid", "phantom_lancer", "razor", "bloodseeker", "kez", "muerta",
+]);
+
+// Sarcastic results that override the normal reading, each marked "Certified Toxic".
+const SPECIALS = {
+  JUNGLE: {
+    card: "The Hermit", numeral: "IX", title: "The Jungle Hermit", color: "#c0392b", meter: 99,
+    icon: '<path d="M14 4 V44" /><path d="M14 11 Q20 8 26 10 V15" /><path d="M20 15 H32 L30 30 H22 Z" /><path d="M26 19 Q29 23 26 27 Q23 23 26 19 Z" /><path d="M10 44 H20" />',
+    meterName: "Toxicity",
+    desc: "You chose the trees over your team. While four people fight for their lives, you are clearing the same camp for the fourth time, convinced that being level 11 at 20 minutes will turn the game. It won't. But your farm graph will look amazing.",
+    strengths: ["Never dies (never shows up)", "Flawless last-hitting on neutral creeps", "Can always explain why it's the support's fault"],
+    shadow: "Your team. Specifically, the four people discussing you in all chat.",
+    life: "You once left a group project to \"work on your part separately\". Nobody has ever seen your part.",
+    quote: "I'll join the next fight. Or the one after that.",
+  },
+  FAKE_SUPPORT: {
+    card: "The Moon", numeral: "XVIII", title: "The Fake Support", color: "#c0392b", meter: 3,
+    icon: '<path d="M30 6 A18 18 0 1 0 30 42 A14 14 0 1 1 30 6 Z" /><path d="M38 12 l1 2.5 2.5 1 -2.5 1 -1 2.5 -1 -2.5 -2.5 -1 2.5 -1 Z" /><path d="M40 30 l.8 2 2 .8 -2 .8 -.8 2 -.8 -2 -2 -.8 2 -.8 Z" />',
+    meterName: "Support-ness",
+    desc: "You clicked \"Support\" in role queue, then picked a hard carry. Your wards are still in the shop, the courier is delivering your Battle Fury, and your carry is wondering why the lane is 1v2. Bold strategy.",
+    strengths: ["Excellent farm for a \"support\"", "Confidence that no amount of reports can shake", "Technically did pick position 5"],
+    shadow: "Your carry. They're typing right now.",
+    life: "You offer to pay for dinner, order the most expensive dish, then split the bill evenly.",
+    quote: "Wards? I thought you were buying them.",
+  },
+};
 
 // [display name, CDN slug, attribute, primary trait, secondary trait]
 const HEROES = [

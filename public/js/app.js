@@ -43,7 +43,7 @@ const SOUND_KEY = "dotaTarot.sound";
 const DAILY_KEY = "dotaTarot.daily";
 const ATTR_COLOR = { str: "var(--str)", agi: "var(--agi)", int: "var(--int)", uni: "var(--uni)" };
 
-const state = { role: null, heroes: [], attr: "all", query: "", lang: "en", reading: null, daily: null, dailyDate: null };
+const state = { roles: [], heroes: [], build: null, attr: "all", query: "", lang: "en", reading: null, daily: null, dailyDate: null };
 const $ = (sel) => document.querySelector(sel);
 
 // localStorage can be missing or throw (private mode, blocked storage); the site works without it.
@@ -55,6 +55,8 @@ const t = (key, vars = {}) => (UI[state.lang][key] ?? UI.en[key]).replace(/\{(\w
 const loc = (en, zh) => (state.lang === "zh" && zh ? { ...en, ...zh } : en);
 const traitName = (k) => loc(TRAITS[k], ZH.traits[k]).name;
 const roleT = (role) => loc(role, ZH.roles[role.id]);
+const buildT = (build) => loc(build, ZH.builds[build.id]);
+const specialT = (key) => loc(SPECIALS[key], ZH.specials[key]);
 const arcT = (k) => loc(ARCANA[k], ZH.arcana[k]);
 const heroName = (h) => (state.lang === "zh" && ZH.heroes[h.slug]) || h.name;
 const dailyT = () => (state.lang === "zh" ? ZH.daily : DAILY);
@@ -70,6 +72,7 @@ function setLang(lang) {
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => (el.placeholder = t(el.dataset.i18nPh)));
   document.querySelectorAll(".lang button").forEach((b) => b.classList.toggle("active", b.dataset.lang === lang));
   renderRoles();
+  renderBuilds();
   relabelHeroes();
   renderPicked();
   filterHeroes();
@@ -324,10 +327,11 @@ function copyText(text, btn) {
 /* ---------- Step 1: roles ---------- */
 function renderRoles() {
   $("#roles").innerHTML = ROLES.map((r, i) => {
-    const on = state.role?.id === r.id;
+    const on = state.roles.includes(r);
     const rt = roleT(r);
     return `
-    <button class="role${on ? " selected" : ""}" style="--i:${i}" data-role="${r.id}" aria-pressed="${on}">
+    <button class="role${on ? " selected" : ""}${r.joke ? " joke" : ""}" style="--i:${i}" data-role="${r.id}" aria-pressed="${on}">
+      ${r.joke ? `<span class="role-tag">${t("unofficial")}</span>` : ""}
       <span class="role-numeral">${r.numeral}</span>
       ${roleSvg(r)}
       <h3>${rt.name}</h3>
@@ -338,17 +342,17 @@ function renderRoles() {
 }
 
 function initRoles() {
+  // Several lanes can be picked; the first one picked counts as the main lane.
   $("#roles").addEventListener("click", (e) => {
     const card = e.target.closest(".role");
     if (!card) return;
-    state.role = ROLES.find((r) => r.id === +card.dataset.role);
-    sfx.pick();
-    document.querySelectorAll(".role").forEach((el) => {
-      const on = el === card;
-      el.classList.toggle("selected", on);
-      el.setAttribute("aria-pressed", on);
-    });
-    $("#to-heroes").disabled = false;
+    const role = ROLES.find((r) => r.id === +card.dataset.role);
+    const i = state.roles.indexOf(role);
+    if (i >= 0) state.roles.splice(i, 1);
+    else { state.roles.push(role); sfx.pick(); }
+    card.classList.toggle("selected", i < 0);
+    card.setAttribute("aria-pressed", i < 0);
+    $("#to-heroes").disabled = state.roles.length === 0;
   });
 
   // Subtle 3D tilt that follows the cursor.
@@ -420,7 +424,6 @@ function renderHeroes() {
     document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === chip));
     filterHeroes();
   });
-  $("#to-reading").addEventListener("click", startReading);
 }
 
 function relabelHeroes() {
@@ -450,7 +453,7 @@ function toggleHero(slug) {
     if (order) b.dataset.order = order;
   });
   $("#hero-grid").classList.toggle("full", state.heroes.length === MAX_HEROES);
-  $("#to-reading").disabled = state.heroes.length === 0;
+  $("#to-build").disabled = state.heroes.length === 0;
   renderPicked();
 }
 
@@ -471,10 +474,48 @@ function renderPicked() {
   }
 }
 
+/* ---------- Step 3: item build ---------- */
+function renderBuilds() {
+  $("#builds").innerHTML = BUILDS.map((b, i) => {
+    const bt = buildT(b), on = state.build === b;
+    return `
+    <button class="build${on ? " selected" : ""}${b.id === "nobkb" ? " crossed" : ""}" style="--i:${i}" data-build="${b.id}" aria-pressed="${on}">
+      <span class="build-icon"></span>
+      <h3>${bt.name}</h3>
+      <p>${bt.blurb}</p>
+    </button>`;
+  }).join("");
+  document.querySelectorAll(".build").forEach((el) => {
+    const b = BUILDS.find((x) => x.id === el.dataset.build);
+    el.querySelector(".build-icon").append(steamImg(ITEM_PATH + b.item + ".png", "", (img) => img.remove()));
+  });
+}
+
+function initBuilds() {
+  $("#builds").addEventListener("click", (e) => {
+    const card = e.target.closest(".build");
+    if (!card) return;
+    state.build = BUILDS.find((b) => b.id === card.dataset.build);
+    sfx.pick();
+    document.querySelectorAll(".build").forEach((el) => {
+      el.classList.toggle("selected", el === card);
+      el.setAttribute("aria-pressed", el === card);
+    });
+    $("#to-reading").disabled = false;
+  });
+  $("#to-reading").addEventListener("click", startReading);
+}
+
 /* ---------- Scoring ---------- */
-function tally(roleWeights, heroes) {
+// Lanes are averaged, so picking several blends them instead of stacking them.
+function laneWeights(roles) {
+  const w = {};
+  for (const r of roles) for (const [k, v] of Object.entries(r.weights)) w[k] = (w[k] || 0) + v / roles.length;
+  return w;
+}
+function tally(weights, heroes) {
   const s = Object.fromEntries(Object.keys(TRAITS).map((k) => [k, 0.5]));
-  for (const [k, v] of Object.entries(roleWeights)) s[k] += v;
+  for (const [k, v] of Object.entries(weights)) s[k] += v;
   // Picks always count as a full set of 3, so the lane can't drown out one or two heroes.
   const f = heroes.length ? MAX_HEROES / heroes.length : 0;
   for (const h of heroes) { s[h.traits[0]] += 2 * f; s[h.traits[1]] += f; }
@@ -484,21 +525,45 @@ function tally(roleWeights, heroes) {
 const ranked = (scores, tie = {}) =>
   Object.keys(scores).sort((a, b) => scores[b] - scores[a] || (tie[b] || 0) - (tie[a] || 0));
 
-/* ---------- Step 3: reading ---------- */
-function readingCards({ role, heroes, heroTrait, main }) {
-  const rt = roleT(role), arc = arcT(main);
+/* ---------- Step 4: reading ---------- */
+// One lane: its name. Two: both names. Three or more: "Flex Player".
+function laneInfo(roles) {
+  const rt = roleT(roles[0]);
+  return {
+    primary: roles[0],
+    name: roles.length === 1 ? rt.name : roles.length === 2 ? roles.map((r) => roleT(r).name).join(" / ") : t("flexName"),
+    label: roles.length === 1 ? rt.pos : `${t("posShort")} ${roles.map((r) => r.id).join(" · ")}`,
+  };
+}
+
+// Sarcastic overrides: any Jungle pick, or support-only lanes with mostly carry-only heroes.
+function specialFor(roles, heroes) {
+  if (roles.some((r) => r.joke)) return "JUNGLE";
+  const supportOnly = roles.every((r) => r.id === 4 || r.id === 5);
+  const cores = heroes.filter((h) => CORE_ONLY.has(h.slug)).length;
+  return supportOnly && cores * 2 > heroes.length ? "FAKE_SUPPORT" : null;
+}
+
+function readingCards({ roles, heroes, heroTrait, main, special }) {
+  const lane = laneInfo(roles), arc = arcT(main);
+  const sp = special && specialT(special);
   return [
     {
-      cap: t("capLane"), color: "#d9b25f", numeral: role.numeral,
-      art: `<div class="emblem">${roleSvg(role)}</div>`,
-      name: rt.name, label: rt.pos,
+      cap: t("capLane"), color: "#d9b25f", numeral: lane.primary.numeral,
+      art: `<div class="emblem">${roleSvg(lane.primary)}</div>`,
+      name: lane.name, label: lane.label,
     },
     {
       cap: t("capChamps"), color: TRAITS[heroTrait].color, numeral: ARCANA[heroTrait].numeral,
       art: heroPanels(heroes),
       name: traitName(heroTrait), label: t("theirGift"),
     },
-    {
+    sp ? {
+      cap: t("capSoul"), color: sp.color, numeral: sp.numeral, extra: "toxic",
+      art: `<div class="emblem"><svg viewBox="0 0 48 48" aria-hidden="true">${sp.icon}</svg></div>`,
+      outside: `<div class="toxic-stamp">${t("toxicStamp")}</div>`,
+      name: sp.card, label: sp.title,
+    } : {
       cap: t("capSoul"), color: TRAITS[main].color, numeral: ARCANA[main].numeral,
       art: `<div class="emblem"><svg viewBox="0 0 48 48" aria-hidden="true">${ARCANA[main].icon}</svg></div>`,
       name: arc.card, label: arc.title,
@@ -507,12 +572,14 @@ function readingCards({ role, heroes, heroTrait, main }) {
 }
 
 function startReading() {
-  const role = state.role;
+  const roles = [...state.roles], build = state.build;
   const heroes = state.heroes.map((s) => HEROES.find((h) => h.slug === s));
   const lean = tally({}, heroes);
-  const scores = tally(role.weights, heroes);
+  const weights = laneWeights(roles);
+  for (const [k, v] of Object.entries(build.weights)) weights[k] = (weights[k] || 0) + v;
+  const scores = tally(weights, heroes);
   const [main, second] = ranked(scores, lean);
-  state.reading = { role, heroes, scores, main, second, heroTrait: ranked(lean)[0] };
+  state.reading = { roles, heroes, build, scores, main, second, heroTrait: ranked(lean)[0], special: specialFor(roles, heroes) };
   const cards = readingCards(state.reading);
 
   $("#reading-prompt").textContent = t("drawn");
@@ -643,24 +710,32 @@ function animateRadar(svg, values) {
 }
 
 function showResult(scroll) {
-  const { role, heroes, scores, main, second } = state.reading;
-  const arc = arcT(main), rt = roleT(role);
+  const { roles, heroes, build, scores, main, second, special } = state.reading;
+  const sp = special && specialT(special);
+  // A special result replaces the arcana text; everything else reads the same fields.
+  const arc = sp || arcT(main);
+  const numeral = sp ? sp.numeral : ARCANA[main].numeral;
+  const lane = laneInfo(roles), bt = buildT(build);
   const total = Object.values(scores).reduce((a, b) => a + b, 0);
   const heroNames = listJoin(heroes.map(heroName));
+  const laneLines = sp ? "" : `<p>${roleT(lane.primary).line}${roles.length >= 3 ? " " + t("flexLine") : ""}</p>`;
 
   $("#reading-prompt").textContent = t("revealed");
   const res = $("#result");
-  res.style.setProperty("--c", TRAITS[main].color);
+  res.style.setProperty("--c", sp ? sp.color : TRAITS[main].color);
   res.innerHTML = `
-    <p class="r-kicker">${ARCANA[main].numeral} · ${arc.card}</p>
+    <p class="r-kicker">${numeral} · ${arc.card}</p>
     <h3 class="r-title">${arc.title}</h3>
+    ${sp ? `<p class="r-stamp">${t("toxicStamp")}</p>` : ""}
     <p class="r-quote">“${arc.quote}”</p>
     <div class="r-body">
       <p>${arc.desc}</p>
-      <p>${rt.line}</p>
-      <p class="undertone">${loc(UNDERTONES, ZH.undertones)[second]} ${t("bond", { heroes: heroNames })}</p>
+      ${laneLines}
+      <p class="build-line"><b>${t("buildLabel")}</b> ${bt.name}${state.lang === "zh" ? "。" : ". "}${bt.line}</p>
+      ${sp ? "" : `<p class="undertone">${loc(UNDERTONES, ZH.undertones)[second]} ${t("bond", { heroes: heroNames })}</p>`}
     </div>
-    ${radarSvg(scores, total, main)}
+    ${sp ? `<div class="meter" style="--w:${sp.meter}%"><span>${sp.meterName}</span><div class="meter-track"><div class="meter-fill"></div></div><b>${sp.meter}%</b></div>`
+         : radarSvg(scores, total, main)}
     <div class="cols">
       <div class="box"><h4>${t("strengths")}</h4><ul>${arc.strengths.map((s) => `<li>${s}</li>`).join("")}</ul></div>
       <div class="box"><h4>${t("shadow")}</h4><p>${arc.shadow}</p></div>
@@ -673,30 +748,36 @@ function showResult(scroll) {
     </div>`;
   res.hidden = false;
 
-  const max = Math.max(...Object.values(scores));
-  // sqrt + floor keeps a full polygon shape even when one trait dominates.
-  const values = Object.keys(TRAITS).map((k) => 0.18 + 0.82 * Math.sqrt(scores[k] / max));
-  setTimeout(() => animateRadar(res.querySelector(".radar"), values), 700);
+  if (sp) {
+    setTimeout(() => res.querySelector(".meter").classList.add("go"), 700);
+  } else {
+    const max = Math.max(...Object.values(scores));
+    // sqrt + floor keeps a full polygon shape even when one trait dominates.
+    const values = Object.keys(TRAITS).map((k) => 0.18 + 0.82 * Math.sqrt(scores[k] / max));
+    setTimeout(() => animateRadar(res.querySelector(".radar"), values), 700);
+  }
   if (scroll) {
     sfx.reveal();
     setTimeout(() => res.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   }
 
   $("#copy").addEventListener("click", (e) => {
-    copyText(t("share", { card: arc.card, title: arc.title, role: rt.name, heroes: heroNames, quote: arc.quote }), e.target);
+    copyText(t("share", { card: arc.card, title: arc.title, role: lane.name, heroes: heroNames, quote: arc.quote }), e.target);
   });
   $("#again").addEventListener("click", reset);
   $("#poster-btn").addEventListener("click", (e) => openPoster("reading", e.currentTarget));
 }
 
 function reset() {
-  state.role = null;
+  state.roles = [];
   state.heroes = [];
+  state.build = null;
   state.reading = null;
-  document.querySelectorAll(".role").forEach((el) => { el.classList.remove("selected"); el.setAttribute("aria-pressed", false); });
+  document.querySelectorAll(".role, .build").forEach((el) => { el.classList.remove("selected"); el.setAttribute("aria-pressed", false); });
   document.querySelectorAll(".hero").forEach((b) => b.classList.remove("selected"));
   $("#hero-grid").classList.remove("full");
   $("#to-heroes").disabled = true;
+  $("#to-build").disabled = true;
   $("#to-reading").disabled = true;
   renderPicked();
   go("role");
@@ -728,7 +809,7 @@ function fortune(date, pick) {
   const trait = Object.keys(ARCANA)[idx(6)];
   const reversed = r() < 0.3;
   const heroes = HEROES.filter((h) => h.traits.includes(trait));
-  const roles = ROLES.filter((ro) => ro.weights[trait]);
+  const roles = ROLES.filter((ro) => ro.weights[trait] && !ro.joke);
   return {
     trait, reversed,
     luck: reversed ? 1 + idx(3) : 3 + idx(3), // 1–5 stars
@@ -1205,15 +1286,18 @@ async function makePoster(kind) {
       facts: [`${t("luckyHero")}: ${heroName(f.hero)}`, `${t("luckyRole")}: ${roleT(f.role).name}`, `${t("luckyItem")}: ${d.items[f.item]}`],
       doDont: [`${t("do")} · ${d.dos[f.doI]}`, `${t("dont")} · ${d.donts[f.dontI]}`] };
   } else {
-    const { role, heroes, scores, main } = state.reading, arc = arcT(main);
-    color = TRAITS[main].color;
+    const { roles, heroes, build, scores, main, special } = state.reading;
+    const sp = special && specialT(special), arc = sp || arcT(main);
+    color = sp ? sp.color : TRAITS[main].color;
     const total = Object.values(scores).reduce((a, b) => a + b, 0);
     const art = heroes.every(hasArt);
-    card = { color, numeral: ARCANA[main].numeral, icon: ARCANA[main].icon, reversed: false, heroes: [],
+    card = { color, numeral: sp ? sp.numeral : ARCANA[main].numeral, icon: sp ? sp.icon : ARCANA[main].icon, reversed: false, heroes: [],
       panels: triptych(heroes).map((h) => (art ? { src: artUrl(h) } : { src: RELAY + RENDER_PATH + h.slug + ".png", inked: true })),
       name: arc.card, label: arc.title };
-    lines = { kicker: `${roleT(role).name} · ${listJoin(heroes.map(heroName))}`, title: arc.title, body: `“${arc.quote}”`,
-      traits: ranked(scores).slice(0, 3).map((k) => [traitName(k), Math.round((scores[k] / total) * 100), TRAITS[k].color]) };
+    lines = { kicker: `${laneInfo(roles).name} · ${buildT(build).name} · ${listJoin(heroes.map(heroName))}`,
+      title: arc.title, body: `“${arc.quote}”`, stamp: sp ? t("toxicStamp") : null,
+      bars: sp ? [[sp.meterName, sp.meter, sp.color, 100]]
+               : ranked(scores).slice(0, 3).map((k) => [traitName(k), Math.round((scores[k] / total) * 100), TRAITS[k].color, 50]) };
   }
   await drawPosterCard(g, card, 250, 230, 580);
 
@@ -1228,6 +1312,17 @@ async function makePoster(kind) {
   g.shadowColor = color; g.shadowBlur = 24;
   y = textBlock(g, lines.title, W / 2, y + 30, 940, size + 8) + 6;
   g.shadowBlur = 0;
+  if (lines.stamp) {
+    // A slightly tilted red rubber stamp
+    g.save();
+    g.translate(W / 2, y + 28); g.rotate(-0.05);
+    g.font = `900 34px Cinzel, "Noto Serif SC", serif`;
+    const sw = g.measureText(lines.stamp).width + 48;
+    g.strokeStyle = "#e0533f"; g.lineWidth = 4; roundRect(g, -sw / 2, -30, sw, 56, 8); g.stroke();
+    g.fillStyle = "#e0533f"; g.textBaseline = "middle"; g.fillText(lines.stamp, 0, 0);
+    g.restore();
+    y += 84;
+  }
   if (lines.stars) {
     g.font = `48px serif`;
     const stars = "★★★★★";
@@ -1238,13 +1333,14 @@ async function makePoster(kind) {
   }
   g.fillStyle = "#ece6da"; g.font = `500 32px Inter, "Noto Serif SC", sans-serif`;
   y = textBlock(g, lines.body, W / 2, y + 26, 880, 46) + 14;
-  if (lines.traits) {
-    lines.traits.forEach(([name, pct, col], i) => {
+  if (lines.bars) {
+    // Trait shares (scaled to 50%, since one trait rarely passes that) or a special result's meter (scaled to 100%)
+    lines.bars.forEach(([name, pct, col, full], i) => {
       const by = y + 20 + i * 50;
       g.textAlign = "right"; g.fillStyle = "#ece6da"; g.font = `700 28px Cinzel, "Noto Serif SC", serif`;
       g.fillText(name, 400, by + 10);
       g.fillStyle = "rgba(255,255,255,.08)"; roundRect(g, 424, by - 8, 420, 18, 9); g.fill();
-      g.fillStyle = col; roundRect(g, 424, by - 8, Math.max(18, 420 * Math.min(1, pct / 50)), 18, 9); g.fill();
+      g.fillStyle = col; roundRect(g, 424, by - 8, Math.max(18, 420 * Math.min(1, pct / full)), 18, 9); g.fill();
       g.textAlign = "left"; g.fillStyle = col; g.font = `600 26px Inter, sans-serif`;
       g.fillText(`${pct}%`, 860, by + 10);
     });
@@ -1324,6 +1420,7 @@ for (const stage of [$("#spread"), $("#daily-stage")]) {
 /* ---------- Init ---------- */
 initRoles();
 renderHeroes();
+initBuilds();
 initDaily();
 document.querySelectorAll(".lang [data-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
 $("#sound-btn").addEventListener("click", () => { sfx.toggle(); renderSoundBtn(); });
