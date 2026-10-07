@@ -3,6 +3,7 @@ const STEAM_HOSTS = ["https://cdn.cloudflare.steamstatic.com", "https://cdn.akam
 const HERO_PATH = "/apps/dota2/images/dota_react/heroes/";
 const RENDER_PATH = "/apps/dota2/videos/dota_react/heroes/renders/";
 const ITEM_PATH = "/apps/dota2/images/dota_react/items/";
+const VERT_PATH = "/apps/dota2/images/heroes/"; // tall portraits ({slug}_vert.jpg); a few new heroes lack one
 const RUNES = "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ";
 const CORNER = '<svg viewBox="0 0 24 24"><path d="M2 22 V8 Q2 2 8 2 H22 M6 22 V10 Q6 6 10 6 H22" /><circle cx="2" cy="22" r="1.6" /><circle cx="22" cy="2" r="1.6" /></svg>';
 const CARD_BACK = `
@@ -235,9 +236,23 @@ function renderHeroes() {
     b.dataset.slug = h.slug;
     b.style.setProperty("--i", i);
     b.style.setProperty("--attr", ATTR_COLOR[h.attr]);
-    b.append(portrait(h));
-    b.insertAdjacentHTML("beforeend", '<span class="name"></span>');
+    b.innerHTML = '<span class="h-window"></span><span class="h-frame"></span><span class="h-gem"></span><span class="name"></span><span class="h-sheen"></span>';
+    b.querySelector(".h-window").append(
+      steamImg(VERT_PATH + h.slug + "_vert.jpg", h.name, (img) => img.replaceWith(portrait(h)), true));
     grid.append(b);
+  });
+
+  // Tarot-card tilt that follows the cursor.
+  grid.addEventListener("pointermove", (e) => {
+    const card = e.target.closest(".hero");
+    if (!card) return;
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    card.style.transform = `translateY(-8px) rotateY(${x * 18}deg) rotateX(${-y * 18}deg)`;
+  });
+  grid.addEventListener("pointerout", (e) => {
+    const card = e.target.closest(".hero");
+    if (card && !card.contains(e.relatedTarget)) card.style.transform = "";
   });
 
   grid.addEventListener("click", (e) => {
@@ -280,7 +295,11 @@ function toggleHero(slug) {
   if (i >= 0) state.heroes.splice(i, 1);
   else if (state.heroes.length < MAX_HEROES) state.heroes.push(slug);
   else return;
-  document.querySelectorAll(".hero").forEach((b) => b.classList.toggle("selected", state.heroes.includes(b.dataset.slug)));
+  document.querySelectorAll(".hero").forEach((b) => {
+    const order = state.heroes.indexOf(b.dataset.slug) + 1;
+    b.classList.toggle("selected", order > 0);
+    if (order) b.dataset.order = order;
+  });
   $("#hero-grid").classList.toggle("full", state.heroes.length === MAX_HEROES);
   $("#to-reading").disabled = state.heroes.length === 0;
   renderPicked();

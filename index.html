@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=7" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
 </head>
 <body>
   <canvas id="embers" aria-hidden="true"></canvas>
@@ -60,7 +60,11 @@
       <h2 data-i18n="step2Title"></h2>
       <p class="hint" data-i18n="step2Hint"></p>
     </header>
-    <div class="picked" id="picked"></div>
+    <div class="pickbar">
+      <button class="btn btn-ghost" data-go="role" data-i18n="back"></button>
+      <div class="picked" id="picked"></div>
+      <button class="btn btn-primary" id="to-reading" data-i18n="draw" disabled></button>
+    </div>
     <div class="toolbar">
       <input type="search" id="search" data-i18n-ph="search" autocomplete="off" />
       <div class="filters" id="filters">
@@ -72,10 +76,6 @@
       </div>
     </div>
     <div class="hero-grid" id="hero-grid"></div>
-    <nav class="step-nav sticky">
-      <button class="btn btn-ghost" data-go="role" data-i18n="back"></button>
-      <button class="btn btn-primary" id="to-reading" data-i18n="draw" disabled></button>
-    </nav>
   </section>
 
   <!-- Step 3: reading -->
@@ -103,8 +103,8 @@
     </nav>
   </section>
 
-  <script src="js/data.js?v=7"></script>
-  <script src="js/i18n.js?v=7"></script>
-  <script src="js/app.js?v=7"></script>
+  <script src="js/data.js?v=8"></script>
+  <script src="js/i18n.js?v=8"></script>
+  <script src="js/app.js?v=8"></script>
 </body>
 </html>
